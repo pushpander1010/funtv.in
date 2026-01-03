@@ -1,14 +1,10 @@
 // Build script to pre-load channels cache
 // This runs during deployment to ensure channels are available immediately
 
-// Import required modules
 const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 
-// Global variables (copied from server.js for build script)
-let channels = [];
-let validatedChannels = [];
 let channelAlternatives = new Map();
 let sourceStats = {};
 
@@ -19,7 +15,7 @@ function parseM3U(content, sourceName, sourceType) {
   let current = {};
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const line = (lines[i] || '').trim();
 
     if (line.startsWith('#EXTINF:')) {
       const nameMatch = line.match(/,(.+)$/);
@@ -28,7 +24,7 @@ function parseM3U(content, sourceName, sourceType) {
 
       current = {
         id: result.length + 1,
-        name: nameMatch ? nameMatch[1] : 'Unknown Channel',
+        name: nameMatch ? nameMatch[1].trim() : 'Unknown Channel',
         logo: logoMatch ? logoMatch[1] : '',
         category: groupMatch ? groupMatch[1] : 'General',
         source: sourceName,
@@ -37,8 +33,10 @@ function parseM3U(content, sourceName, sourceType) {
         validated: false
       };
     } else if (line && !line.startsWith('#') && current.name) {
-      current.url = line;
-      result.push({ ...current });
+      if (line.startsWith('http')) {
+        current.url = line;
+        result.push({ ...current });
+      }
       current = {};
     }
   }
@@ -46,46 +44,30 @@ function parseM3U(content, sourceName, sourceType) {
   return result;
 }
 
-// Simplified loadChannelsFromSources for build script
-async function loadChannelsFromSources() {
+async function buildChannelsFromSources() {
   console.log('Building channels cache for deployment...');
+
   const STREAMING_SOURCES = [
-    // Include your main reliable sources here
-    {
-      name: 'IPTV-org Main',
-      url: 'https://iptv-org.github.io/iptv/index.m3u',
-      type: 'iptv',
-      priority: 1
-    },
-    {
-      name: 'IPTV-org US',
-      url: 'https://iptv-org.github.io/iptv/countries/us.m3u',
-      type: 'iptv',
-      priority: 2
-    },
-    {
-      name: 'IPTV-org IN',
-      url: 'https://iptv-org.github.io/iptv/countries/in.m3u',
-      type: 'iptv',
-      priority: 3
-    },
-    {
-      name: 'Free-TV',
-      url: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
-      type: 'iptv',
-      priority: 4
-    }
+    // Keep the build fast: cache a solid "starter" set.
+    { name: 'IPTV-org Main', url: 'https://iptv-org.github.io/iptv/index.m3u', type: 'iptv', priority: 1 },
+    { name: 'IPTV-org News', url: 'https://iptv-org.github.io/iptv/categories/news.m3u', type: 'iptv', priority: 2 },
+    { name: 'IPTV-org Sports', url: 'https://iptv-org.github.io/iptv/categories/sports.m3u', type: 'iptv', priority: 3 },
+    { name: 'IPTV-org Movies', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u', type: 'iptv', priority: 4 },
+    { name: 'IPTV-org US', url: 'https://iptv-org.github.io/iptv/countries/us.m3u', type: 'iptv', priority: 5 },
+    { name: 'IPTV-org IN', url: 'https://iptv-org.github.io/iptv/countries/in.m3u', type: 'iptv', priority: 6 },
+    { name: 'IPTV-org English', url: 'https://iptv-org.github.io/iptv/languages/eng.m3u', type: 'iptv', priority: 7 },
+    { name: 'Free-TV Main', url: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8', type: 'iptv', priority: 8 }
   ];
 
   let allChannels = [];
   sourceStats = {};
 
-  // Load from top 4 reliable sources only (faster build)
-  for (const source of STREAMING_SOURCES.slice(0, 4)) {
+  // Load from a limited number of sources (keeps deployments fast)
+  const BUILD_SOURCE_LIMIT = 8;
+  for (const source of STREAMING_SOURCES.slice(0, BUILD_SOURCE_LIMIT)) {
     try {
       console.log(`Loading ${source.name}...`);
 
-      const axios = require('axios');
       const response = await axios.get(source.url, {
         timeout: 30000,
         headers: {
@@ -119,20 +101,20 @@ async function loadChannelsFromSources() {
   const channelGroups = new Map();
 
   for (const channel of allChannels) {
-    const normalizedName = channel.name.toLowerCase()
+    const normalizedName = (channel.name || '').toLowerCase()
       .replace(/[^\w\s]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
 
-    if (!channelGroups.has(normalizedName)) {
-      channelGroups.set(normalizedName, []);
-    }
+    if (!channelGroups.has(normalizedName)) channelGroups.set(normalizedName, []);
     channelGroups.get(normalizedName).push(channel);
   }
 
   // Create unique channels
   const uniqueChannels = [];
-  for (const [name, alternatives] of channelGroups) {
+  channelAlternatives = new Map();
+
+  for (const [, alternatives] of channelGroups) {
     if (alternatives.length > 0) {
       const primaryChannel = alternatives[0];
       uniqueChannels.push(primaryChannel);
@@ -160,9 +142,9 @@ async function saveChannelsToCache(channels) {
     };
 
     await fs.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
-    console.log(`✅ Saved ${channels.length} channels to cache`);
+    console.log(`Saved ${channels.length} channels to cache`);
   } catch (error) {
-    console.error('❌ Error saving channels to cache:', error.message);
+    console.error('Error saving channels to cache:', error.message);
     process.exit(1);
   }
 }
@@ -170,19 +152,15 @@ async function saveChannelsToCache(channels) {
 // Main build function
 async function buildChannelsCache() {
   try {
-    console.log('🚀 Starting channels cache build...');
-
-    const channels = await loadChannelsFromSources();
+    console.log('Starting channels cache build...');
+    const channels = await buildChannelsFromSources();
     await saveChannelsToCache(channels);
-
-    console.log('🎉 Channels cache build completed successfully!');
-    console.log(`📊 Cached ${channels.length} channels for instant loading`);
-
+    console.log('Channels cache build completed successfully!');
+    console.log(`Cached ${channels.length} channels for instant loading`);
   } catch (error) {
-    console.error('❌ Build failed:', error.message);
+    console.error('Build failed:', error.message);
     process.exit(1);
   }
 }
 
-// Run the build
 buildChannelsCache();
