@@ -91,6 +91,12 @@ npm start
 
 **Free Tier:** 512MB RAM, 1GB disk, sleeps after inactivity
 
+**Troubleshooting:**
+- If deployment fails, check Railway build logs
+- Ensure no Dockerfile exists (we removed it for Node.js deployment)
+- Railway uses Node.js buildpack automatically with package.json
+- If npm ci fails, try redeploying or check for dependency conflicts
+
 ### Local Development
 ```bash
 npm install
