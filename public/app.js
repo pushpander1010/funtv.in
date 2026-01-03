@@ -10,7 +10,13 @@ class StreamVerse {
         this.currentAlternativeIndex = 0;
         this.userClosedPlayer = false;
         this.autoSwitchEnabled = true;
-        
+
+        // Engagement tracking
+        this.popularChannels = this.loadPopularChannels();
+        this.searchHistory = this.loadSearchHistory();
+        this.sessionStart = Date.now();
+        this.channelsViewed = 0;
+
         this.init();
     }
 
@@ -43,7 +49,12 @@ class StreamVerse {
 
         this.searchInput.addEventListener('input', (e) => {
             this.currentSearch = e.target.value;
-            this.debounce(() => this.loadChannels(), 300)();
+            this.debounce(() => {
+                this.loadChannels();
+                if (this.currentSearch.length > 2) {
+                    this.addToSearchHistory(this.currentSearch);
+                }
+            }, 300)();
         });
 
         this.validatedOnly.addEventListener('change', () => {
@@ -75,6 +86,66 @@ class StreamVerse {
         
         // Load source information
         this.loadSourceInfo();
+
+        // Track engagement
+        this.trackEngagement();
+    }
+
+    // Popular channels management
+    loadPopularChannels() {
+        const stored = localStorage.getItem('funtv_popular');
+        return stored ? JSON.parse(stored) : {};
+    }
+
+    savePopularChannels() {
+        localStorage.setItem('funtv_popular', JSON.stringify(this.popularChannels));
+    }
+
+    trackChannelView(channelId) {
+        this.popularChannels[channelId] = (this.popularChannels[channelId] || 0) + 1;
+        this.savePopularChannels();
+        this.channelsViewed++;
+    }
+
+    // Search history management
+    loadSearchHistory() {
+        const stored = localStorage.getItem('funtv_search_history');
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    saveSearchHistory() {
+        localStorage.setItem('funtv_search_history', JSON.stringify(this.searchHistory.slice(-10))); // Keep last 10
+    }
+
+    addToSearchHistory(query) {
+        if (query && query.length > 2) {
+            this.searchHistory = this.searchHistory.filter(item => item !== query);
+            this.searchHistory.unshift(query);
+            this.saveSearchHistory();
+        }
+    }
+
+    // Engagement tracking
+    trackEngagement() {
+        // Track time spent
+        setInterval(() => {
+            const timeSpent = Math.floor((Date.now() - this.sessionStart) / 1000);
+            // Analytics ready - can send to Google Analytics, etc.
+            console.log(`Session time: ${timeSpent}s, Channels viewed: ${this.channelsViewed}`);
+        }, 30000); // Every 30 seconds
+
+        // Track scroll depth
+        let maxScroll = 0;
+        window.addEventListener('scroll', () => {
+            const scrollPercent = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100);
+            if (scrollPercent > maxScroll) {
+                maxScroll = scrollPercent;
+                // Analytics ready
+                if (scrollPercent >= 25 && scrollPercent % 25 === 0) {
+                    console.log(`Scroll depth: ${scrollPercent}%`);
+                }
+            }
+        });
     }
 
     async loadSourceInfo() {
@@ -235,18 +306,40 @@ class StreamVerse {
         `).join('');
     }
 
+    // Show popular channels based on view history
+    showPopularChannels() {
+        const popularIds = Object.entries(this.popularChannels)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 6)
+            .map(([id]) => id);
+
+        if (popularIds.length === 0) return;
+
+        const popularChannels = this.channels.filter(channel =>
+            popularIds.includes(channel.id.toString())
+        );
+
+        if (popularChannels.length > 0) {
+            // Could add a popular channels section to the UI
+            console.log('Popular channels:', popularChannels.map(c => c.name));
+        }
+    }
+
     async playChannel(index) {
         const channel = this.channels[index];
         if (!channel) return;
+
+        // Track channel view for popularity
+        this.trackChannelView(channel.id);
 
         this.currentChannelIndex = index;
         this.currentChannel = channel;
         this.currentAlternativeIndex = 0;
         this.userClosedPlayer = false;
-        
+
         // Load alternatives for this channel
         await this.loadChannelAlternatives(channel.id);
-        
+
         // Start playing the primary source
         this.playChannelSource(channel);
     }
@@ -366,10 +459,26 @@ class StreamVerse {
     }
 
     showLoading() {
+        const tips = [
+            "💡 Pro tip: Use the search bar to find specific channels instantly",
+            "🎯 Fun fact: We aggregate channels from 8+ different sources worldwide",
+            "⚡ Smart fallback: If one source fails, we automatically try alternatives",
+            "📱 Works perfectly on mobile, tablet, and desktop devices",
+            "🔍 Filter by category: News, Sports, Entertainment, and more",
+            "✅ Verified channels: Toggle to show only quality-tested streams",
+            "🌍 Global content: Indian, international, and regional channels",
+            "🚀 Fast loading: Optimized for the best streaming experience"
+        ];
+
+        const randomTip = tips[Math.floor(Math.random() * tips.length)];
+
         this.channelsGrid.innerHTML = `
             <div class="loading">
                 <i class="fas fa-spinner fa-spin"></i>
-                <p>Loading channels...</p>
+                <p>Loading 15,000+ channels...</p>
+                <div class="loading-tip">
+                    <small>${randomTip}</small>
+                </div>
             </div>
         `;
         this.channelCount.textContent = 'Loading...';
