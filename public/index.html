@@ -164,6 +164,11 @@
 
     <main>
         <div class="container">
+            <!-- Top Banner Ad -->
+            <div class="ad-banner-top">
+                <div class="ad-placeholder">Leaderboard Banner - 728x90</div>
+            </div>
+
             <div class="controls">
                 <div class="filter-section">
                     <select id="categoryFilter">
@@ -192,12 +197,14 @@
             </div>
 
             <div class="content-area">
-                <!-- Sidebar Ad -->
+                <!-- Left Sidebar Ad -->
                 <div class="sidebar-ad">
-                    <div class="ad-placeholder vertical">Ad<br>160x600</div>
+                    <div class="ad-sidebar-large">
+                        <div class="ad-placeholder vertical">Tower Ad<br>160x600</div>
+                    </div>
                 </div>
 
-                <!-- Channels Grid -->
+                <!-- Channels Container with Pagination -->
                 <div class="channels-container">
                     <div id="channelsGrid" class="channels-grid">
                         <div class="loading">
@@ -205,12 +212,31 @@
                             <p>Loading channels...</p>
                         </div>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="paginationControls" class="pagination" style="display: none;">
+                        <button id="prevPage" class="pagination-btn">Previous</button>
+                        <span id="pageInfo" class="pagination-info">Page 1 of 1</span>
+                        <button id="nextPage" class="pagination-btn">Next</button>
+                    </div>
                 </div>
 
-                <!-- Sidebar Ad -->
+                <!-- Right Sidebar Ad -->
                 <div class="sidebar-ad">
-                    <div class="ad-placeholder vertical">Ad<br>160x600</div>
+                    <div class="ad-sidebar-large">
+                        <div class="ad-placeholder vertical">Tower Ad<br>160x600</div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Mobile Banner Ad -->
+            <div class="ad-mobile-banner">
+                <div class="ad-placeholder">Mobile Banner - 320x50</div>
+            </div>
+
+            <!-- Bottom Banner Ad -->
+            <div class="ad-banner-bottom">
+                <div class="ad-placeholder">Footer Banner - 728x90</div>
             </div>
         </div>
     </main>

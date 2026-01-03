@@ -12,6 +12,19 @@ body {
     line-height: 1.6;
 }
 
+/* Color scheme variables for variety */
+:root {
+    --primary-blue: #3b82f6;
+    --secondary-purple: #8b5cf6;
+    --accent-orange: #f59e0b;
+    --accent-green: #10b981;
+    --accent-pink: #ec4899;
+    --accent-red: #ef4444;
+    --dark-bg: #0f172a;
+    --card-bg: rgba(22, 33, 62, 0.8);
+    --border-color: rgba(59, 130, 246, 0.2);
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -519,9 +532,9 @@ input:checked + .slider:before {
 }
 
 .channels-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .channel-card {
@@ -552,11 +565,121 @@ input:checked + .slider:before {
 .channel-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    border-color: #3b82f6;
+    border-color: var(--primary-blue);
 }
 
 .channel-card:hover::before {
     opacity: 1;
+}
+
+/* Category-based color accents */
+.channel-card.news {
+    border-left: 4px solid var(--accent-red);
+}
+
+.channel-card.sports {
+    border-left: 4px solid var(--accent-orange);
+}
+
+.channel-card.entertainment {
+    border-left: 4px solid var(--accent-pink);
+}
+
+.channel-card.movies {
+    border-left: 4px solid var(--secondary-purple);
+}
+
+.channel-card.music {
+    border-left: 4px solid var(--accent-green);
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0;
+    padding: 1rem;
+}
+
+.pagination-btn {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-purple) 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Dedicated Ad Spaces */
+.ad-banner-top {
+    background: rgba(15, 15, 35, 0.8);
+    padding: 1rem;
+    text-align: center;
+    margin: 1rem 0;
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.ad-banner-bottom {
+    background: rgba(15, 15, 35, 0.8);
+    padding: 1rem;
+    text-align: center;
+    margin: 2rem 0;
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.ad-sidebar-large {
+    background: rgba(15, 15, 35, 0.8);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 1rem 0;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ad-mobile-banner {
+    background: rgba(15, 15, 35, 0.8);
+    padding: 1rem;
+    text-align: center;
+    margin: 1rem 0;
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    display: none;
+}
+
+/* Show mobile ads on small screens */
+@media (max-width: 768px) {
+    .ad-mobile-banner {
+        display: block;
+    }
+
+    .ad-sidebar-large {
+        display: none;
+    }
 }
 
 .channel-logo {

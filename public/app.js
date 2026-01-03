@@ -11,6 +11,11 @@ class StreamVerse {
         this.userClosedPlayer = false;
         this.autoSwitchEnabled = true;
 
+        // Pagination
+        this.channelsPerPage = 24;
+        this.currentPage = 1;
+        this.totalPages = 1;
+
         // Engagement tracking
         this.popularChannels = this.loadPopularChannels();
         this.searchHistory = this.loadSearchHistory();
@@ -39,6 +44,12 @@ class StreamVerse {
         this.videoPlayer = document.getElementById('videoPlayer');
         this.playerTitle = document.getElementById('playerTitle');
         this.closePlayer = document.getElementById('closePlayer');
+
+        // Pagination elements
+        this.paginationControls = document.getElementById('paginationControls');
+        this.prevPageBtn = document.getElementById('prevPage');
+        this.nextPageBtn = document.getElementById('nextPage');
+        this.pageInfo = document.getElementById('pageInfo');
     }
 
     bindEvents() {
@@ -86,6 +97,21 @@ class StreamVerse {
         
         // Load source information
         this.loadSourceInfo();
+
+        // Pagination events
+        this.prevPageBtn.addEventListener('click', () => {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+                this.renderChannels();
+            }
+        });
+
+        this.nextPageBtn.addEventListener('click', () => {
+            if (this.currentPage < this.totalPages) {
+                this.currentPage++;
+                this.renderChannels();
+            }
+        });
 
         // Track engagement
         this.trackEngagement();
@@ -248,6 +274,9 @@ class StreamVerse {
     }
 
     async loadChannels() {
+        // Reset pagination when loading new channels
+        this.currentPage = 1;
+
         try {
             const params = new URLSearchParams();
             if (this.currentFilter !== 'all') {
@@ -285,25 +314,43 @@ class StreamVerse {
                     <p>No channels found. Try adjusting your filters.</p>
                 </div>
             `;
+            this.paginationControls.style.display = 'none';
             return;
         }
 
-        this.channelsGrid.innerHTML = this.channels.map((channel, index) => `
-            <div class="channel-card" onclick="app.playChannel(${index})">
-                <img class="channel-logo" 
-                     src="${channel.logo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9InVybCgjZ3JhZGllbnQpIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWM0ODk5O3N0b3Atb3BhY2l0eToxIiAvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+Cjx0ZXh0IHg9IjMyIiB5PSI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIyNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXdlaWdodD0iYm9sZCI+U1Y8L3RleHQ+Cjwvc3ZnPgo='}" 
-                     alt="${this.escapeHtml(channel.name)}"
-                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9InVybCgjZ3JhZGllbnQpIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWM0ODk5O3N0b3Atb3BhY2l0eToxIiAvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+Cjx0ZXh0IHg9IjMyIiB5PSI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIyNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXdlaWdodD0iYm9sZCI+U1Y8L3RleHQ+Cjwvc3ZnPgo='">
-                <div class="channel-name">${this.escapeHtml(channel.name)}</div>
-                <div class="channel-info">
-                    <div class="channel-category">${this.escapeHtml(channel.category)}</div>
-                    ${this.validatedOnly.checked ? '<div class="verified-badge"><i class="fas fa-check-circle"></i> Verified</div>' : ''}
-                    ${channel.source ? `<div class="source-badge">${this.escapeHtml(channel.source.split(' ')[0])}</div>` : ''}
-                    ${channel.type ? `<div class="type-badge ${channel.type}">${this.getTypeIcon(channel.type)} ${this.escapeHtml(channel.type.toUpperCase())}</div>` : ''}
-                    ${channel.alternativesCount > 0 ? `<div class="alternatives-badge"><i class="fas fa-layer-group"></i> +${channel.alternativesCount}</div>` : ''}
+        // Calculate pagination
+        this.totalPages = Math.ceil(this.channels.length / this.channelsPerPage);
+        const startIndex = (this.currentPage - 1) * this.channelsPerPage;
+        const endIndex = startIndex + this.channelsPerPage;
+        const channelsToShow = this.channels.slice(startIndex, endIndex);
+
+        // Update pagination UI
+        this.pageInfo.textContent = `Page ${this.currentPage} of ${this.totalPages}`;
+        this.prevPageBtn.disabled = this.currentPage === 1;
+        this.nextPageBtn.disabled = this.currentPage === this.totalPages;
+        this.paginationControls.style.display = this.totalPages > 1 ? 'flex' : 'none';
+
+        this.channelsGrid.innerHTML = channelsToShow.map((channel, index) => {
+            const actualIndex = startIndex + index;
+            const categoryClass = channel.category.toLowerCase().replace(/\s+/g, '');
+
+            return `
+                <div class="channel-card ${categoryClass}" onclick="app.playChannel(${actualIndex})">
+                    <img class="channel-logo"
+                         src="${channel.logo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9InVybCgjZ3JhZGllbnQpIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWM0ODk5O3N0b3Atb3BhY2l0eToxIiAvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+Cjx0ZXh0IHg9IjMyIiB5PSI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIyNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXdlaWdodD0iYm9sZCI+U1Y8L3RleHQ+Cjwvc3ZnPgo='}"
+                         alt="${this.escapeHtml(channel.name)}"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9InVybCgjZ3JhZGllbnQpIi8+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50IiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzYzNjZmMTtzdG9wLW9wYWNpdHk6MSIgLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojZWM0ODk5O3N0b3Atb3BhY2l0eToxIiAvPgo8L2xpbmVhckdyYWRpZW50Pgo8L2RlZnM+Cjx0ZXh0IHg9IjMyIiB5PSI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiIgZm9udC1zaXplPSIyNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXdlaWdodD0iYm9sZCI+U1Y8L3RleHQ+Cjwvc3ZnPgo='">
+                    <div class="channel-name">${this.escapeHtml(channel.name)}</div>
+                    <div class="channel-info">
+                        <div class="channel-category">${this.escapeHtml(channel.category)}</div>
+                        ${this.validatedOnly.checked ? '<div class="verified-badge"><i class="fas fa-check-circle"></i> Verified</div>' : ''}
+                        ${channel.source ? `<div class="source-badge">${this.escapeHtml(channel.source.split(' ')[0])}</div>` : ''}
+                        ${channel.type ? `<div class="type-badge ${channel.type}">${this.getTypeIcon(channel.type)} ${this.escapeHtml(channel.type.toUpperCase())}</div>` : ''}
+                        ${channel.alternativesCount > 0 ? `<div class="alternatives-badge"><i class="fas fa-layer-group"></i> +${channel.alternativesCount}</div>` : ''}
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // Show popular channels based on view history
