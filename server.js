@@ -3,6 +3,7 @@ const cors = require("cors");
 const axios = require("axios");
 const path = require("path");
 const fs = require("fs").promises;
+const crypto = require("crypto");
 
 const app = express();
 
@@ -19,6 +20,7 @@ let channelAlternatives = new Map();
 let validationInProgress = false;
 let sourceStats = {};
 let channelsLoaded = false;
+const insecureStreamMap = new Map();
 
 // ---------------------------
 // Middleware
@@ -162,11 +164,6 @@ function isSecureUrl(url) {
   return typeof url === "string" && url.toLowerCase().startsWith("https://");
 }
 
-function stripInsecureForBrowser(list, allowInsecure) {
-  if (allowInsecure) return list;
-  return list.filter((ch) => isSecureUrl(ch.url));
-}
-
 function sanitizeChannelForBrowser(channel) {
   if (!channel) return channel;
 
@@ -185,6 +182,31 @@ function sanitizeChannelForBrowser(channel) {
 
   if (sanitized.background && !isSecureUrl(sanitized.background)) {
     sanitized.background = "";
+  }
+
+  return sanitized;
+}
+
+function registerProxyStream(originalUrl) {
+  if (!originalUrl || isSecureUrl(originalUrl)) return originalUrl;
+
+  const token = crypto.createHash("sha256").update(originalUrl).digest("hex");
+  if (!insecureStreamMap.has(token)) {
+    insecureStreamMap.set(token, originalUrl);
+  }
+
+  return `/api/stream/${token}`;
+}
+
+function prepareChannelForBrowser(channel, allowInsecure) {
+  if (!channel) return null;
+
+  const sanitized = sanitizeChannelForBrowser(channel);
+  if (!allowInsecure && sanitized.url && !isSecureUrl(sanitized.url)) {
+    sanitized.url = registerProxyStream(channel.url);
+    sanitized.isProxyStream = true;
+  } else {
+    sanitized.isProxyStream = false;
   }
 
   return sanitized;
@@ -488,10 +510,6 @@ app.get("/api/channels", (req, res) => {
   const sourceChannels = validated === "true" && validatedChannels.length > 0 ? validatedChannels : channels;
   let filtered = [...sourceChannels];
 
-  const beforeSecureFilter = filtered.length;
-  filtered = stripInsecureForBrowser(filtered, allow);
-  const blockedInsecure = Math.max(0, beforeSecureFilter - filtered.length);
-
   if (category && category !== "all") {
     filtered = filtered.filter((ch) => ch.category && ch.category.toLowerCase().includes(String(category).toLowerCase()));
   }
@@ -500,10 +518,13 @@ app.get("/api/channels", (req, res) => {
     filtered = filtered.filter((ch) => ch.name && ch.name.toLowerCase().includes(String(search).toLowerCase()));
   }
 
+  let proxiedStreams = 0;
   const channelsWithAlternatives = filtered.map((channel) => {
-    const sanitized = sanitizeChannelForBrowser(channel);
+    if (!allow && channel.url && !isSecureUrl(channel.url)) proxiedStreams += 1;
+
+    const prepared = prepareChannelForBrowser(channel, allow);
     return {
-      ...sanitized,
+      ...prepared,
       alternativesCount: channelAlternatives.has(channel.id) ? channelAlternatives.get(channel.id).length : 0
     };
   });
@@ -511,7 +532,8 @@ app.get("/api/channels", (req, res) => {
   res.json({
     channels: channelsWithAlternatives.slice(0, 100),
     total: filtered.length,
-    blockedInsecure,
+    blockedInsecure: 0,
+    proxiedStreams,
     validatedCount: validatedChannels.length,
     totalChannels: channels.length,
     validationInProgress,
@@ -524,14 +546,70 @@ app.get("/api/channel/:id/alternatives", (req, res) => {
   const { allowInsecure } = req.query;
   const allow = allowInsecure === "true" || allowInsecure === "1" || !isHttpsRequest(req);
 
-  const alternatives = stripInsecureForBrowser(channelAlternatives.get(channelId) || [], allow).map((alt) =>
-    sanitizeChannelForBrowser(alt)
-  );
+  const rawAlternatives = channelAlternatives.get(channelId) || [];
+  const alternatives = rawAlternatives
+    .map((alt) => prepareChannelForBrowser(alt, allow))
+    .filter(Boolean);
 
   res.json({
     channelId,
     alternatives: alternatives.map((alt, index) => ({ ...alt, alternativeIndex: index }))
   });
+});
+
+app.get("/api/stream/:token", async (req, res) => {
+  const { token } = req.params;
+  const originalUrl = insecureStreamMap.get(token);
+
+  if (!originalUrl || isSecureUrl(originalUrl)) {
+    return res.status(404).json({ error: "stream_not_found" });
+  }
+
+  try {
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      Accept: "video/*,application/*;q=0.9,*/*;q=0.5"
+    };
+
+    if (req.headers.range) {
+      headers.Range = req.headers.range;
+    }
+
+    const upstream = await axios({
+      method: "get",
+      url: originalUrl,
+      responseType: "stream",
+      timeout: 20000,
+      headers,
+      maxRedirects: 5,
+      validateStatus: () => true
+    });
+
+    res.status(upstream.status || 200);
+    res.setHeader("Cache-Control", "no-store");
+
+    const passthroughHeaders = ["content-type", "content-length", "accept-ranges", "content-range"];
+    passthroughHeaders.forEach((header) => {
+      if (upstream.headers[header]) {
+        res.setHeader(header, upstream.headers[header]);
+      }
+    });
+
+    upstream.data.pipe(res);
+    upstream.data.on("error", (err) => {
+      console.error("Proxy stream pipeline error:", err.message);
+      if (!res.headersSent) {
+        res.status(502).json({ error: "proxy_stream_error" });
+      } else {
+        res.destroy(err);
+      }
+    });
+  } catch (error) {
+    console.error("Proxy stream error:", error.message);
+    if (!res.headersSent) {
+      res.status(502).json({ error: "proxy_stream_failed" });
+    }
+  }
 });
 
 app.get("/api/categories", (req, res) => {
