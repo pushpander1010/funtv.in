@@ -28,7 +28,8 @@ app.use(express.json());
 
 // In this repo, static files live at the project root (index.html, style.css, app.js, etc.)
 // Do NOT point to a non-existent /public folder, or Vercel will return 404/HTML for CSS/JS.
-const PUBLIC_DIR = __dirname;
+const PUBLIC_DIR = path.join(__dirname, "public");
+
 
 // Hard-serve CSS/JS with correct content-type + no-cache (prevents Vercel routing quirks)
 function noCache(res) {
