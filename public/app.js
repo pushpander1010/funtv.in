@@ -12,7 +12,7 @@ class StreamVerse {
         this.autoSwitchEnabled = true;
 
         // Pagination
-        this.channelsPerPage = 24;
+        this.channelsPerPage = 20;
         this.currentPage = 1;
         this.totalPages = 1;
 
@@ -204,6 +204,16 @@ class StreamVerse {
         };
     }
 
+    hideLoading() {
+        const overlay = document.querySelector('.loading-overlay');
+        if (overlay) {
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.remove();
+            }, 300);
+        }
+    }
+
     async loadData() {
         try {
             this.showLoading();
@@ -222,9 +232,13 @@ class StreamVerse {
             
             // Update source info
             this.loadSourceInfo();
+            
+            // Hide loading overlay
+            this.hideLoading();
         } catch (error) {
             console.error('Error loading data:', error);
             this.showError('Failed to load data. Please try again.');
+            this.hideLoading();
         }
     }
 
@@ -512,6 +526,23 @@ class StreamVerse {
     }
 
     showLoading() {
+        // Show full-screen loading overlay
+        if (!document.querySelector('.loading-overlay')) {
+            const overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <h3>Loading FunTV Channels</h3>
+                    <p>Discover 15,000+ live channels from around the world...</p>
+                    <div class="loading-progress">
+                        <div class="progress-bar"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
         const tips = [
             "💡 Pro tip: Use the search bar to find specific channels instantly",
             "🎯 Fun fact: We aggregate channels from 8+ different sources worldwide",
