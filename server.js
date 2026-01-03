@@ -3,6 +3,8 @@ const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
 
+// Force redeployment - updated 2025-01-03
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
