@@ -10,9 +10,6 @@ pids
 *.seed
 *.pid.lock
 
-# Channel cache (generated during build)
-channels-cache.json
-
 # Runtime data
 pids
 *.pid
