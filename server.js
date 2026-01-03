@@ -78,6 +78,23 @@ app.use('/app.js', (req, res, next) => {
 
 app.use(express.static('public'));
 
+// Handle favicon requests to prevent 404 errors
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'favicon.ico'));
+});
+
+app.get('/apple-touch-icon.png', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'favicon.ico'));
+});
+
+app.get('/favicon-32x32.png', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'favicon.ico'));
+});
+
+app.get('/favicon-16x16.png', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'favicon.ico'));
+});
+
 // Comprehensive streaming sources for maximum availability and fault tolerance
 const STREAMING_SOURCES = [
   // Primary IPTV Sources (Highly Reliable)
@@ -979,13 +996,32 @@ async function loadChannels() {
 
 // Start validation after deployment is complete
 async function startValidationAfterDeployment() {
-  // Wait 30 seconds after server starts to ensure deployment is complete
+  // In serverless environments, use a more conservative delay
+  // and check if we're in a production environment
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
+  const delay = isProduction ? 120000 : 30000; // 2 minutes in production, 30 seconds in development
+
+  console.log(`⏳ Validation scheduled to start in ${delay/1000} seconds (${isProduction ? 'production' : 'development'} environment)`);
+  console.log(`📊 Current status: channelsLoaded=${channelsLoaded}, validatedChannels=${validatedChannels.length}, validationInProgress=${validationInProgress}`);
+
   setTimeout(async () => {
-    if (channelsLoaded && validatedChannels.length === 0 && !validationInProgress) {
-      console.log('🚀 Starting channel validation (post-deployment)...');
-      await validateChannels();
+    try {
+      console.log(`🔍 Checking validation conditions: channelsLoaded=${channelsLoaded}, validatedChannels=${validatedChannels.length}, validationInProgress=${validationInProgress}`);
+
+      if (channelsLoaded && validatedChannels.length === 0 && !validationInProgress) {
+        console.log('🚀 Starting channel validation (post-deployment)...');
+        await validateChannels();
+      } else if (validationInProgress) {
+        console.log('ℹ️ Validation already in progress');
+      } else if (validatedChannels.length > 0) {
+        console.log('ℹ️ Channels already validated');
+      } else {
+        console.log('⏸️ Validation conditions not met, skipping');
+      }
+    } catch (error) {
+      console.error('❌ Error starting validation:', error.message);
     }
-  }, 30000); // 30 second delay to ensure deployment is complete
+  }, delay);
 }
 
 // API Routes
@@ -1095,20 +1131,41 @@ app.get('/api/validation-status', (req, res) => {
 
 // Manual validation trigger endpoint
 app.post('/api/validation/start', async (req, res) => {
-  if (validationInProgress) {
-    return res.json({ status: 'already_running', message: 'Validation is already in progress' });
-  }
-
-  if (validatedChannels.length > 0) {
-    return res.json({ status: 'already_validated', message: 'Channels are already validated' });
-  }
-
   try {
     console.log('🔧 Manual validation triggered via API');
+
+    if (validationInProgress) {
+      return res.json({
+        status: 'already_running',
+        message: 'Validation is already in progress',
+        validatedCount: validatedChannels.length,
+        totalChannels: channels.length
+      });
+    }
+
+    if (validatedChannels.length > 0) {
+      return res.json({
+        status: 'already_validated',
+        message: 'Channels are already validated',
+        validatedCount: validatedChannels.length,
+        totalChannels: channels.length
+      });
+    }
+
+    // Start validation immediately
     validateChannels();
-    res.json({ status: 'started', message: 'Validation started successfully' });
+    res.json({
+      status: 'started',
+      message: 'Validation started successfully',
+      validatedCount: validatedChannels.length,
+      totalChannels: channels.length
+    });
   } catch (error) {
-    res.status(500).json({ status: 'error', message: error.message });
+    console.error('❌ Error starting manual validation:', error.message);
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
   }
 });
 
