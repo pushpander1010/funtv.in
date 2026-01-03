@@ -1026,6 +1026,7 @@ async function startValidationAfterDeployment() {
 
 // API Routes
 app.get('/api/channels', (req, res) => {
+  console.log(`🔍 API Request: /api/channels - Query: ${JSON.stringify(req.query)} - Channels: ${channels.length} - Validated: ${validatedChannels.length}`);
   const { category, search, validated } = req.query;
   
   // Use validated channels if available and requested, otherwise use all channels
@@ -1078,6 +1079,7 @@ app.get('/api/channel/:id/alternatives', (req, res) => {
 });
 
 app.get('/api/categories', (req, res) => {
+  console.log(`📂 API Request: /api/categories - Query: ${JSON.stringify(req.query)} - Channels: ${channels.length}`);
   const { validated } = req.query;
   
   // Use validated channels if available and requested
@@ -1098,6 +1100,8 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    vercel: !!process.env.VERCEL,
     channels: {
       total: channels.length,
       validated: validatedChannels.length,
@@ -1193,7 +1197,10 @@ startValidationAfterDeployment();
 
 app.listen(PORT, () => {
   global.serverStartTime = Date.now(); // Track when server started
-  console.log(`StreamVerse running on http://localhost:${PORT}`);
+  console.log(`🚀 StreamVerse running on http://localhost:${PORT}`);
   console.log('✅ Server ready - channels loaded from cache');
+  console.log(`📊 Channels available: ${channels.length}`);
   console.log('⏳ Validation will start in 30 seconds (post-deployment)');
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`⚡ Vercel: ${process.env.VERCEL ? 'Yes' : 'No'}`);
 });
