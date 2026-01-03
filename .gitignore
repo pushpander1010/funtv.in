@@ -10,6 +10,15 @@ pids
 *.seed
 *.pid.lock
 
+# Channel cache (generated during build)
+channels-cache.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
 # Coverage directory used by tools like istanbul
 coverage/
 .nyc_output

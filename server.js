@@ -2,11 +2,60 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs').promises;
 
 // Force redeployment - updated 2025-01-03
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Channel data storage
+let channels = [];
+let validatedChannels = [];
+let channelAlternatives = new Map();
+let validationInProgress = false;
+let sourceStats = {};
+let channelsLoaded = false;
+
+// Load channels from cached JSON file
+async function loadChannelsFromCache() {
+  try {
+    const cachePath = path.join(__dirname, 'channels-cache.json');
+    const cacheData = await fs.readFile(cachePath, 'utf8');
+    const cached = JSON.parse(cacheData);
+
+    channels = cached.channels || [];
+    validatedChannels = cached.validatedChannels || [];
+    channelAlternatives = new Map(cached.channelAlternatives || []);
+    sourceStats = cached.sourceStats || {};
+
+    console.log(`Loaded ${channels.length} channels from cache`);
+    channelsLoaded = true;
+    return true;
+  } catch (error) {
+    console.log('No cache file found, will load from sources');
+    return false;
+  }
+}
+
+// Save channels to cache file
+async function saveChannelsToCache() {
+  try {
+    const cachePath = path.join(__dirname, 'channels-cache.json');
+    const cacheData = {
+      timestamp: new Date().toISOString(),
+      channels: channels,
+      validatedChannels: validatedChannels,
+      channelAlternatives: Array.from(channelAlternatives.entries()),
+      sourceStats: sourceStats
+    };
+
+    await fs.writeFile(cachePath, JSON.stringify(cacheData, null, 2));
+    console.log(`Saved ${channels.length} channels to cache`);
+  } catch (error) {
+    console.error('Error saving channels to cache:', error.message);
+  }
+}
 
 app.use(cors());
 app.use(express.json());
@@ -575,12 +624,6 @@ const STREAMING_SOURCES = [
   }
 ];
 
-let channels = [];
-let validatedChannels = [];
-let channelAlternatives = new Map(); // Store alternative sources for same channels
-let validationInProgress = false;
-let sourceStats = {};
-
 // Parse M3U playlist with source and type tracking
 function parseM3U(content, sourceName, sourceType) {
   const lines = content.split('\n');
@@ -908,14 +951,29 @@ function getSourceBreakdown() {
 // Load channels from all sources
 async function loadChannels() {
   try {
-    console.log('Loading IPTV channels from multiple sources...');
-    channels = await loadChannelsFromSources();
-    console.log(`Total unique channels loaded: ${channels.length}`);
-    
-    // Start validation in background
-    validateChannels();
+    // First try to load from cache
+    const cacheLoaded = await loadChannelsFromCache();
+
+    if (!cacheLoaded) {
+      // If no cache, load from sources
+      console.log('Loading IPTV channels from multiple sources...');
+      channels = await loadChannelsFromSources();
+      console.log(`Total unique channels loaded: ${channels.length}`);
+
+      // Save to cache for future use
+      await saveChannelsToCache();
+    }
+
+    // Start validation in background (only if not already validated)
+    if (validatedChannels.length === 0) {
+      validateChannels();
+    }
+
+    channelsLoaded = true;
   } catch (error) {
     console.error('Error loading channels:', error.message);
+    // Try to load from cache as fallback
+    await loadChannelsFromCache();
   }
 }
 
