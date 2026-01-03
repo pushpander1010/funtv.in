@@ -47,7 +47,7 @@ function parseM3U(content, sourceName, sourceType) {
 }
 
 // Simplified loadChannelsFromSources for build script
-async function buildChannelsFromSources() {
+async function loadChannelsFromSources() {
   console.log('Building channels cache for deployment...');
   const STREAMING_SOURCES = [
     // Include your main reliable sources here
@@ -172,7 +172,7 @@ async function buildChannelsCache() {
   try {
     console.log('🚀 Starting channels cache build...');
 
-    const channels = await buildChannelsFromSources();
+    const channels = await loadChannelsFromSources();
     await saveChannelsToCache(channels);
 
     console.log('🎉 Channels cache build completed successfully!');
