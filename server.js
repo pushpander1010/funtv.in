@@ -167,9 +167,8 @@ function stripInsecureForBrowser(list, allowInsecure) {
   return list.filter((ch) => isSecureUrl(ch.url));
 }
 
-function sanitizeChannelForBrowser(channel, allowInsecure) {
+function sanitizeChannelForBrowser(channel) {
   if (!channel) return channel;
-  if (allowInsecure) return channel;
 
   const sanitized = { ...channel };
   if (sanitized.logo && !isSecureUrl(sanitized.logo)) {
@@ -178,6 +177,14 @@ function sanitizeChannelForBrowser(channel, allowInsecure) {
 
   if (sanitized.thumbnail && !isSecureUrl(sanitized.thumbnail)) {
     sanitized.thumbnail = "";
+  }
+
+  if (sanitized.poster && !isSecureUrl(sanitized.poster)) {
+    sanitized.poster = "";
+  }
+
+  if (sanitized.background && !isSecureUrl(sanitized.background)) {
+    sanitized.background = "";
   }
 
   return sanitized;
@@ -494,7 +501,7 @@ app.get("/api/channels", (req, res) => {
   }
 
   const channelsWithAlternatives = filtered.map((channel) => {
-    const sanitized = sanitizeChannelForBrowser(channel, allow);
+    const sanitized = sanitizeChannelForBrowser(channel);
     return {
       ...sanitized,
       alternativesCount: channelAlternatives.has(channel.id) ? channelAlternatives.get(channel.id).length : 0
@@ -518,7 +525,7 @@ app.get("/api/channel/:id/alternatives", (req, res) => {
   const allow = allowInsecure === "true" || allowInsecure === "1" || !isHttpsRequest(req);
 
   const alternatives = stripInsecureForBrowser(channelAlternatives.get(channelId) || [], allow).map((alt) =>
-    sanitizeChannelForBrowser(alt, allow)
+    sanitizeChannelForBrowser(alt)
   );
 
   res.json({
