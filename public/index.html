@@ -215,9 +215,16 @@
 
                     <!-- Pagination Controls -->
                     <div id="paginationControls" class="pagination" style="display: none;">
-                        <button id="prevPage" class="pagination-btn">Previous</button>
-                        <span id="pageInfo" class="pagination-info">Page 1 of 1</span>
-                        <button id="nextPage" class="pagination-btn">Next</button>
+                        <button id="prevPage" class="pagination-btn">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <div class="pagination-center">
+                            <span id="pageInfo" class="pagination-info">Page 1 of 1</span>
+                            <span id="pageStats" class="pagination-stats">Showing 1-24 of 100 channels</span>
+                        </div>
+                        <button id="nextPage" class="pagination-btn">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
 

@@ -50,6 +50,7 @@ class StreamVerse {
         this.prevPageBtn = document.getElementById('prevPage');
         this.nextPageBtn = document.getElementById('nextPage');
         this.pageInfo = document.getElementById('pageInfo');
+        this.pageStats = document.getElementById('pageStats');
     }
 
     bindEvents() {
@@ -326,6 +327,11 @@ class StreamVerse {
 
         // Update pagination UI
         this.pageInfo.textContent = `Page ${this.currentPage} of ${this.totalPages}`;
+        
+        const startItem = startIndex + 1;
+        const endItem = Math.min(endIndex, this.channels.length);
+        this.pageStats.textContent = `Showing ${startItem}-${endItem} of ${this.channels.length} channels`;
+        
         this.prevPageBtn.disabled = this.currentPage === 1;
         this.nextPageBtn.disabled = this.currentPage === this.totalPages;
         this.paginationControls.style.display = this.totalPages > 1 ? 'flex' : 'none';
