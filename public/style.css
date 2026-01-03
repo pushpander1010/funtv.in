@@ -39,23 +39,37 @@ body {
     border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 
-.ad-placeholder {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(29, 78, 216, 0.1) 100%);
-    border: 2px dashed rgba(59, 130, 246, 0.3);
-    padding: 20px;
-    border-radius: 12px;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
-    font-weight: 500;
+/* AdSense Ad Units */
+.adsbygoogle {
+    margin: 0 auto;
+    min-height: 50px;
 }
 
-.ad-placeholder.vertical {
-    height: 600px;
-    width: 160px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Ad containers for proper spacing */
+.ad-space, .sidebar-ad, .ad-mobile-banner, .ad-banner-bottom, .player-ad {
+    margin: 1rem 0;
     text-align: center;
+}
+
+/* Responsive ad containers */
+@media (max-width: 768px) {
+    .sidebar-ad {
+        display: none;
+    }
+
+    .ad-mobile-banner {
+        display: block;
+    }
+}
+
+@media (min-width: 769px) {
+    .ad-mobile-banner {
+        display: none;
+    }
+
+    .sidebar-ad {
+        display: block;
+    }
 }
 
 /* Header */
