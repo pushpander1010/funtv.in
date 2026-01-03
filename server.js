@@ -16,6 +16,7 @@ let channelAlternatives = new Map();
 let validationInProgress = false;
 let sourceStats = {};
 let channelsLoaded = false;
+let serverReady = false; // Flag to track if server is fully deployed
 
 // Load channels from cached JSON file
 async function loadChannelsFromCache() {
@@ -964,17 +965,27 @@ async function loadChannels() {
       await saveChannelsToCache();
     }
 
-    // Start validation in background (only if not already validated)
-    if (validatedChannels.length === 0) {
-      validateChannels();
-    }
-
+    // Don't start validation during deployment - wait for server to be ready
+    // Validation will be started separately after deployment is complete
+    console.log('Channels loaded successfully - validation will start after deployment');
+    
     channelsLoaded = true;
   } catch (error) {
     console.error('Error loading channels:', error.message);
     // Try to load from cache as fallback
     await loadChannelsFromCache();
   }
+}
+
+// Start validation after deployment is complete
+async function startValidationAfterDeployment() {
+  // Wait 30 seconds after server starts to ensure deployment is complete
+  setTimeout(async () => {
+    if (channelsLoaded && validatedChannels.length === 0 && !validationInProgress) {
+      console.log('🚀 Starting channel validation (post-deployment)...');
+      await validateChannels();
+    }
+  }, 30000); // 30 second delay to ensure deployment is complete
 }
 
 // API Routes
@@ -1068,14 +1079,37 @@ app.get('/api/health', (req, res) => {
 });
 
 app.get('/api/validation-status', (req, res) => {
+  const timeSinceStart = Date.now() - (global.serverStartTime || Date.now());
+  const validationStartingIn = Math.max(0, 30000 - timeSinceStart); // 30 seconds delay
+
   res.json({
     validatedCount: validatedChannels.length,
     totalChannels: channels.length,
     validationInProgress,
+    validationStartingIn: validationStartingIn > 0 ? Math.ceil(validationStartingIn / 1000) : 0,
     validationPercentage: channels.length > 0 ? Math.round((validatedChannels.length / Math.min(channels.length, 800)) * 100) : 0,
     sourceStats,
     sourceBreakdown: getSourceBreakdown()
   });
+});
+
+// Manual validation trigger endpoint
+app.post('/api/validation/start', async (req, res) => {
+  if (validationInProgress) {
+    return res.json({ status: 'already_running', message: 'Validation is already in progress' });
+  }
+
+  if (validatedChannels.length > 0) {
+    return res.json({ status: 'already_validated', message: 'Channels are already validated' });
+  }
+
+  try {
+    console.log('🔧 Manual validation triggered via API');
+    validateChannels();
+    res.json({ status: 'started', message: 'Validation started successfully' });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
 });
 
 app.get('/api/sources', (req, res) => {
@@ -1097,6 +1131,12 @@ app.get('/', (req, res) => {
 // Initialize
 loadChannels();
 
+// Start validation after deployment is complete (30 second delay)
+startValidationAfterDeployment();
+
 app.listen(PORT, () => {
+  global.serverStartTime = Date.now(); // Track when server started
   console.log(`StreamVerse running on http://localhost:${PORT}`);
+  console.log('✅ Server ready - channels loaded from cache');
+  console.log('⏳ Validation will start in 30 seconds (post-deployment)');
 });
