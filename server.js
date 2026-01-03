@@ -26,8 +26,9 @@ let channelsLoaded = false;
 app.use(cors());
 app.use(express.json());
 
-// Always resolve an absolute path to /public
-const PUBLIC_DIR = path.join(__dirname, "public");
+// In this repo, static files live at the project root (index.html, style.css, app.js, etc.)
+// Do NOT point to a non-existent /public folder, or Vercel will return 404/HTML for CSS/JS.
+const PUBLIC_DIR = __dirname;
 
 // Hard-serve CSS/JS with correct content-type + no-cache (prevents Vercel routing quirks)
 function noCache(res) {
@@ -49,25 +50,18 @@ app.get("/app.js", (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "app.js"));
 });
 
-// Serve all other static files (images, manifest, etc.)
+// Serve all other static files (images, manifest, sitemap, robots, etc.)
 app.use(
   express.static(PUBLIC_DIR, {
     etag: false,
     lastModified: false,
     setHeaders: (res, filePath) => {
-      // Optional: keep no-cache for html/css/js while debugging
       if (filePath.endsWith(".html") || filePath.endsWith(".css") || filePath.endsWith(".js")) {
         noCache(res);
       }
     }
   })
 );
-
-// Favicon fallbacks (optional but keeps your logs clean)
-app.get("/favicon.ico", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "favicon.ico")));
-app.get("/apple-touch-icon.png", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "favicon.ico")));
-app.get("/favicon-32x32.png", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "favicon.ico")));
-app.get("/favicon-16x16.png", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "favicon.ico")));
 
 // ---------------------------
 // Cache load/save
@@ -111,28 +105,66 @@ async function saveChannelsToCache() {
 }
 
 // ---------------------------
-// Sources
+// Sources (expanded)
 // ---------------------------
 const STREAMING_SOURCES = [
+  // IPTV-ORG (broad, generally stable)
   { name: "IPTV-org Main", url: "https://iptv-org.github.io/iptv/index.m3u", type: "iptv", priority: 1 },
-  { name: "IPTV-org Countries", url: "https://iptv-org.github.io/iptv/countries/us.m3u", type: "iptv", priority: 2 },
-  { name: "IPTV-org News", url: "https://iptv-org.github.io/iptv/categories/news.m3u", type: "iptv", priority: 3 },
-  { name: "IPTV-org Sports", url: "https://iptv-org.github.io/iptv/categories/sports.m3u", type: "iptv", priority: 4 },
+  { name: "IPTV-org News", url: "https://iptv-org.github.io/iptv/categories/news.m3u", type: "iptv", priority: 2 },
+  { name: "IPTV-org Sports", url: "https://iptv-org.github.io/iptv/categories/sports.m3u", type: "iptv", priority: 3 },
+  { name: "IPTV-org Movies", url: "https://iptv-org.github.io/iptv/categories/movies.m3u", type: "iptv", priority: 4 },
   { name: "IPTV-org Entertainment", url: "https://iptv-org.github.io/iptv/categories/entertainment.m3u", type: "iptv", priority: 5 },
-  { name: "IPTV-org Movies", url: "https://iptv-org.github.io/iptv/categories/movies.m3u", type: "iptv", priority: 6 },
+  { name: "IPTV-org Music", url: "https://iptv-org.github.io/iptv/categories/music.m3u", type: "iptv", priority: 6 },
+  { name: "IPTV-org Kids", url: "https://iptv-org.github.io/iptv/categories/kids.m3u", type: "iptv", priority: 7 },
+  { name: "IPTV-org Documentary", url: "https://iptv-org.github.io/iptv/categories/documentary.m3u", type: "iptv", priority: 8 },
+  { name: "IPTV-org Lifestyle", url: "https://iptv-org.github.io/iptv/categories/lifestyle.m3u", type: "iptv", priority: 9 },
+  { name: "IPTV-org Classic", url: "https://iptv-org.github.io/iptv/categories/classic.m3u", type: "iptv", priority: 10 },
 
-  { name: "Free-TV Main", url: "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8", type: "iptv", priority: 7 },
-  { name: "IPTV-org UK", url: "https://iptv-org.github.io/iptv/countries/uk.m3u", type: "iptv", priority: 8 },
-  { name: "IPTV-org IN", url: "https://iptv-org.github.io/iptv/countries/in.m3u", type: "iptv", priority: 9 },
-  { name: "IPTV-org CA", url: "https://iptv-org.github.io/iptv/countries/ca.m3u", type: "iptv", priority: 10 },
-  { name: "IPTV-org AU", url: "https://iptv-org.github.io/iptv/countries/au.m3u", type: "iptv", priority: 11 },
+  // Countries / regions that typically add lots of variety
+  { name: "IPTV-org US", url: "https://iptv-org.github.io/iptv/countries/us.m3u", type: "iptv", priority: 11 },
+  { name: "IPTV-org IN", url: "https://iptv-org.github.io/iptv/countries/in.m3u", type: "iptv", priority: 12 },
+  { name: "IPTV-org UK", url: "https://iptv-org.github.io/iptv/countries/gb.m3u", type: "iptv", priority: 13 },
+  { name: "IPTV-org CA", url: "https://iptv-org.github.io/iptv/countries/ca.m3u", type: "iptv", priority: 14 },
+  { name: "IPTV-org AU", url: "https://iptv-org.github.io/iptv/countries/au.m3u", type: "iptv", priority: 15 },
+  { name: "IPTV-org AE", url: "https://iptv-org.github.io/iptv/countries/ae.m3u", type: "iptv", priority: 16 },
+  { name: "IPTV-org SA", url: "https://iptv-org.github.io/iptv/countries/sa.m3u", type: "iptv", priority: 17 },
+  { name: "IPTV-org DE", url: "https://iptv-org.github.io/iptv/countries/de.m3u", type: "iptv", priority: 18 },
+  { name: "IPTV-org FR", url: "https://iptv-org.github.io/iptv/countries/fr.m3u", type: "iptv", priority: 19 },
+  { name: "IPTV-org ES", url: "https://iptv-org.github.io/iptv/countries/es.m3u", type: "iptv", priority: 20 },
 
-  { name: "YouTube TV Collection", url: "https://raw.githubusercontent.com/benmoose39/YouTube_to_m3u/main/youtube.m3u", type: "webtv", priority: 17 },
+  // Language packs (helps with Hindi/English discovery)
+  { name: "IPTV-org Hindi", url: "https://iptv-org.github.io/iptv/languages/hin.m3u", type: "iptv", priority: 21 },
+  { name: "IPTV-org English", url: "https://iptv-org.github.io/iptv/languages/eng.m3u", type: "iptv", priority: 22 },
 
-  { name: "Radio Browser Top", url: "https://de1.api.radio-browser.info/m3u/stations/topvote/200", type: "radio", priority: 20 },
-  { name: "Radio Browser Popular", url: "https://de1.api.radio-browser.info/m3u/stations/topclick/200", type: "radio", priority: 21 },
-  { name: "Radio Browser Recent", url: "https://de1.api.radio-browser.info/m3u/stations/lastchange/200", type: "radio", priority: 22 }
+  // Extra community playlist
+  { name: "Free-TV Main", url: "https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8", type: "iptv", priority: 30 },
+
+  // Web TV
+  { name: "YouTube TV Collection", url: "https://raw.githubusercontent.com/benmoose39/YouTube_to_m3u/main/youtube.m3u", type: "webtv", priority: 40 },
+
+  // Radio
+  { name: "Radio Browser Top", url: "https://de1.api.radio-browser.info/m3u/stations/topvote/200", type: "radio", priority: 50 },
+  { name: "Radio Browser Popular", url: "https://de1.api.radio-browser.info/m3u/stations/topclick/200", type: "radio", priority: 51 },
+  { name: "Radio Browser Recent", url: "https://de1.api.radio-browser.info/m3u/stations/lastchange/200", type: "radio", priority: 52 }
 ];
+
+// ---------------------------
+// Helpers
+// ---------------------------
+function isHttpsRequest(req) {
+  const xfProto = (req.headers["x-forwarded-proto"] || "").toString().toLowerCase();
+  if (xfProto) return xfProto.includes("https");
+  return req.secure === true || (req.protocol || "").toString().toLowerCase() === "https";
+}
+
+function isSecureUrl(url) {
+  return typeof url === "string" && url.toLowerCase().startsWith("https://");
+}
+
+function stripInsecureForBrowser(list, allowInsecure) {
+  if (allowInsecure) return list;
+  return list.filter((ch) => isSecureUrl(ch.url));
+}
 
 // ---------------------------
 // M3U parsing
@@ -423,10 +455,18 @@ function startValidationAfterDeployment() {
 // API routes
 // ---------------------------
 app.get("/api/channels", (req, res) => {
-  const { category, search, validated } = req.query;
+  const { category, search, validated, allowInsecure } = req.query;
+
+  // Default behavior: when the site is opened over HTTPS, return only HTTPS streams.
+  // This prevents browser mixed-content warnings and hard-blocked playback.
+  const allow = allowInsecure === "true" || allowInsecure === "1" || !isHttpsRequest(req);
 
   const sourceChannels = validated === "true" && validatedChannels.length > 0 ? validatedChannels : channels;
   let filtered = [...sourceChannels];
+
+  const beforeSecureFilter = filtered.length;
+  filtered = stripInsecureForBrowser(filtered, allow);
+  const blockedInsecure = Math.max(0, beforeSecureFilter - filtered.length);
 
   if (category && category !== "all") {
     filtered = filtered.filter((ch) => ch.category && ch.category.toLowerCase().includes(String(category).toLowerCase()));
@@ -444,6 +484,7 @@ app.get("/api/channels", (req, res) => {
   res.json({
     channels: channelsWithAlternatives.slice(0, 100),
     total: filtered.length,
+    blockedInsecure,
     validatedCount: validatedChannels.length,
     totalChannels: channels.length,
     validationInProgress,
@@ -453,7 +494,11 @@ app.get("/api/channels", (req, res) => {
 
 app.get("/api/channel/:id/alternatives", (req, res) => {
   const channelId = parseInt(req.params.id, 10);
-  const alternatives = channelAlternatives.get(channelId) || [];
+  const { allowInsecure } = req.query;
+  const allow = allowInsecure === "true" || allowInsecure === "1" || !isHttpsRequest(req);
+
+  const alternatives = stripInsecureForBrowser(channelAlternatives.get(channelId) || [], allow);
+
   res.json({
     channelId,
     alternatives: alternatives.map((alt, index) => ({ ...alt, alternativeIndex: index }))
@@ -556,7 +601,6 @@ app.get("/", (req, res) => {
 
 // Catch-all: any non-API route returns index.html (important for Vercel + SPA)
 app.get("*", (req, res) => {
-  // Do not swallow API routes
   if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Not found" });
   return res.sendFile(path.join(PUBLIC_DIR, "index.html"));
 });
@@ -565,7 +609,6 @@ app.get("*", (req, res) => {
 // Init
 // ---------------------------
 loadChannels().then(() => {
-  // Best effort; do not depend on this in Vercel
   startValidationAfterDeployment();
 });
 

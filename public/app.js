@@ -7,8 +7,8 @@ class StreamVerse {
     this.currentChannelIndex = -1;
 
     // Infinite scroll
-    this.batchSize = 48;       // how many cards to add per load
-    this.renderedCount = 0;    // how many cards already on screen
+    this.batchSize = 48;        // how many cards to add per load
+    this.renderedCount = 0;     // how many cards already on screen
     this.filteredChannels = []; // after filter/search
 
     this.userClosedPlayer = false;
@@ -183,8 +183,13 @@ class StreamVerse {
     const data = await response.json();
     this.channels = data.channels || [];
 
+    // Server may block insecure (http) streams when site is on https.
+    // Expose a small hint in UI so users understand why counts may differ.
+    this.blockedInsecure = data.blockedInsecure || 0;
+
     const statusText = this.validatedOnly.checked ? 'verified' : 'total';
-    this.channelCount.textContent = `${this.channels.length} ${statusText} channels`;
+    const extra = this.blockedInsecure > 0 ? ` (blocked ${this.blockedInsecure} insecure)` : '';
+    this.channelCount.textContent = `${this.channels.length} ${statusText} channels${extra}`;
   }
 
   applyFiltersAndRender(reset) {
@@ -192,7 +197,10 @@ class StreamVerse {
     const q = this.currentSearch.trim().toLowerCase();
 
     this.filteredChannels = this.channels.filter(ch => {
-      const okCat = (this.currentFilter === 'all') ? true : (String(ch.category).toLowerCase() === String(this.currentFilter).toLowerCase());
+      const okCat = (this.currentFilter === 'all')
+        ? true
+        : (String(ch.category).toLowerCase() === String(this.currentFilter).toLowerCase());
+
       const okSearch = !q ? true : (String(ch.name).toLowerCase().includes(q));
       return okCat && okSearch;
     });
@@ -280,6 +288,24 @@ class StreamVerse {
 
   playChannelSource(channelSource, alternatives, altIndex) {
     if (!channelSource || this.userClosedPlayer) return;
+
+    // Avoid mixed-content: browsers block http audio/video inside https pages.
+    const pageIsHttps = window.location.protocol === 'https:';
+    const urlIsHttps = typeof channelSource.url === 'string' && channelSource.url.toLowerCase().startsWith('https://');
+    if (pageIsHttps && !urlIsHttps) {
+      // Try next alternative immediately.
+      if (altIndex < alternatives.length) {
+        return this.playChannelSource(alternatives[altIndex], alternatives, altIndex + 1);
+      }
+      // Nothing secure available.
+      this.playerModal.style.display = 'flex';
+      this.playerTitle.textContent = `${channelSource.name} (no secure stream available)`;
+      this.videoPlayer.pause();
+      this.videoPlayer.removeAttribute('src');
+      this.videoPlayer.load();
+      alert('This channel only has insecure (HTTP) streams, which browsers block on HTTPS sites. Try another channel.');
+      return;
+    }
 
     this.playerTitle.textContent = `${channelSource.name} (${channelSource.source || 'source'})`;
     this.videoPlayer.src = channelSource.url;
