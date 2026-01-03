@@ -186,15 +186,9 @@ class StreamVerse {
     // Server may block insecure (http) streams when site is on https.
     // Expose a small hint in UI so users understand why counts may differ.
     this.blockedInsecure = data.blockedInsecure || 0;
-    this.proxiedStreams = data.proxiedStreams || 0;
 
     const statusText = this.validatedOnly.checked ? 'verified' : 'total';
-    let extra = '';
-    if (this.blockedInsecure > 0) {
-      extra = ` (blocked ${this.blockedInsecure} insecure)`;
-    } else if (this.proxiedStreams > 0) {
-      extra = ` (secured ${this.proxiedStreams} via proxy)`;
-    }
+    const extra = this.blockedInsecure > 0 ? ` (blocked ${this.blockedInsecure} insecure)` : '';
     this.channelCount.textContent = `${this.channels.length} ${statusText} channels${extra}`;
   }
 
@@ -297,9 +291,8 @@ class StreamVerse {
 
     // Avoid mixed-content: browsers block http audio/video inside https pages.
     const pageIsHttps = window.location.protocol === 'https:';
-    const urlStr = typeof channelSource.url === 'string' ? channelSource.url : '';
-    const urlIsSecure = urlStr.startsWith('/') || urlStr.toLowerCase().startsWith('https://');
-    if (pageIsHttps && !urlIsSecure) {
+    const urlIsHttps = typeof channelSource.url === 'string' && channelSource.url.toLowerCase().startsWith('https://');
+    if (pageIsHttps && !urlIsHttps) {
       // Try next alternative immediately.
       if (altIndex < alternatives.length) {
         return this.playChannelSource(alternatives[altIndex], alternatives, altIndex + 1);
