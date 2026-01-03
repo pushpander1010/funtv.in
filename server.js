@@ -3,6 +3,7 @@ const cors = require("cors");
 const axios = require("axios");
 const path = require("path");
 const fs = require("fs").promises;
+const crypto = require("crypto");
 
 const app = express();
 
@@ -19,6 +20,7 @@ let channelAlternatives = new Map();
 let validationInProgress = false;
 let sourceStats = {};
 let channelsLoaded = false;
+const insecureStreamMap = new Map();
 
 // ---------------------------
 // Middleware
@@ -74,17 +76,9 @@ async function loadChannelsFromCache() {
     const cacheData = await fs.readFile(cachePath, "utf8");
     const cached = JSON.parse(cacheData);
 
-    channels = filterSecureChannels(cached.channels || []);
-    validatedChannels = filterSecureChannels(cached.validatedChannels || []);
+    channels = cached.channels || [];
+    validatedChannels = cached.validatedChannels || [];
     channelAlternatives = new Map(cached.channelAlternatives || []);
-    for (const [key, alternatives] of channelAlternatives.entries()) {
-      const secureAlts = filterSecureChannels(alternatives || []);
-      if (secureAlts.length > 0) {
-        channelAlternatives.set(key, secureAlts);
-      } else {
-        channelAlternatives.delete(key);
-      }
-    }
     sourceStats = cached.sourceStats || {};
 
     console.log(`Loaded ${channels.length} channels from cache`);
@@ -194,8 +188,67 @@ function sanitizeChannelForBrowser(channel) {
   return sanitized;
 }
 
-function filterSecureChannels(list = []) {
-  return list.filter((item) => item && isSecureUrl(item.url));
+function registerProxyStream(originalUrl) {
+  if (!originalUrl || isSecureUrl(originalUrl)) return originalUrl;
+  const token = crypto.createHash("sha256").update(originalUrl).digest("hex");
+  if (!insecureStreamMap.has(token)) {
+    insecureStreamMap.set(token, { url: originalUrl, createdAt: Date.now() });
+  } else {
+    insecureStreamMap.get(token).lastAccessed = Date.now();
+  }
+  return `/api/stream/${token}`;
+}
+
+function prepareChannelForBrowser(channel, allowInsecure) {
+  if (!channel) return null;
+  const sanitized = sanitizeChannelForBrowser(channel);
+
+  if (!allowInsecure && sanitized.url && !isSecureUrl(sanitized.url)) {
+    sanitized.url = registerProxyStream(channel.url);
+    sanitized.isProxyStream = true;
+  } else {
+    sanitized.isProxyStream = false;
+  }
+
+  return sanitized;
+}
+
+function resolveRelativeUrl(baseUrl, maybeRelative) {
+  try {
+    return new URL(maybeRelative, baseUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+const PLAYLIST_CONTENT_TYPES = [
+  "application/vnd.apple.mpegurl",
+  "application/x-mpegurl",
+  "audio/mpegurl",
+  "audio/x-mpegurl",
+  "application/mpegurl",
+  "text/plain"
+];
+
+function isHlsPlaylist(contentType = "", originalUrl = "") {
+  const lowered = contentType.toLowerCase();
+  if (PLAYLIST_CONTENT_TYPES.some((type) => lowered.includes(type))) return true;
+  return originalUrl.toLowerCase().includes(".m3u8");
+}
+
+function rewritePlaylist(content, baseUrl) {
+  const lines = content.split(/\r?\n/);
+  const rewritten = lines.map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return line;
+
+    const absolute = resolveRelativeUrl(baseUrl, trimmed);
+    if (!absolute) return line;
+
+    return registerProxyStream(absolute);
+  });
+
+  return rewritten.join("\n");
 }
 
 // ---------------------------
@@ -314,20 +367,19 @@ async function loadChannelsFromSources() {
 
   const uniqueChannels = [];
   for (const [, alternatives] of channelGroups) {
-    const secureAlternatives = filterSecureChannels(alternatives);
-    if (secureAlternatives.length > 0) {
-      const primary = { ...secureAlternatives[0] };
+    if (alternatives.length > 0) {
+      const primary = alternatives[0];
       primary.id = uniqueChannels.length;
       uniqueChannels.push(primary);
 
-      if (secureAlternatives.length > 1) {
-        channelAlternatives.set(primary.id, secureAlternatives.slice(1).map((alt) => ({ ...alt })));
+      if (alternatives.length > 1) {
+        channelAlternatives.set(primary.id, alternatives.slice(1));
       }
     }
   }
 
   console.log(`Total channels loaded: ${allChannels.length}`);
-  console.log(`Unique secure channels after grouping: ${uniqueChannels.length}`);
+  console.log(`Unique channels after grouping: ${uniqueChannels.length}`);
   return uniqueChannels;
 }
 
@@ -505,8 +557,10 @@ app.get("/api/channels", (req, res) => {
     filtered = filtered.filter((ch) => ch.name && ch.name.toLowerCase().includes(String(search).toLowerCase()));
   }
 
+  let proxiedStreams = 0;
   const channelsWithAlternatives = filtered.map((channel) => {
-    const prepared = sanitizeChannelForBrowser(channel);
+    const prepared = prepareChannelForBrowser(channel, allow);
+    if (prepared?.isProxyStream) proxiedStreams += 1;
     return {
       ...prepared,
       alternativesCount: channelAlternatives.has(channel.id) ? channelAlternatives.get(channel.id).length : 0
@@ -516,7 +570,8 @@ app.get("/api/channels", (req, res) => {
   res.json({
     channels: channelsWithAlternatives.slice(0, 100),
     total: filtered.length,
-    blockedInsecure: 0,
+    blockedInsecure: allow ? 0 : 0,
+    proxiedStreams,
     validatedCount: validatedChannels.length,
     totalChannels: channels.length,
     validationInProgress,
@@ -530,12 +585,91 @@ app.get("/api/channel/:id/alternatives", (req, res) => {
   const allow = allowInsecure === "true" || allowInsecure === "1" || !isHttpsRequest(req);
 
   const rawAlternatives = channelAlternatives.get(channelId) || [];
-  const alternatives = rawAlternatives.map((alt) => sanitizeChannelForBrowser(alt));
+  const alternatives = rawAlternatives
+    .map((alt) => prepareChannelForBrowser(alt, allow))
+    .filter(Boolean);
 
   res.json({
     channelId,
     alternatives: alternatives.map((alt, index) => ({ ...alt, alternativeIndex: index }))
   });
+});
+
+app.get("/api/stream/:token", async (req, res) => {
+  const { token } = req.params;
+  const record = insecureStreamMap.get(token);
+
+  if (!record || !record.url || isSecureUrl(record.url)) {
+    return res.status(404).json({ error: "stream_not_found" });
+  }
+
+  try {
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      Accept: "video/*,application/*;q=0.9,*/*;q=0.8"
+    };
+
+    if (req.headers.range) {
+      headers.Range = req.headers.range;
+    }
+
+    const upstream = await axios({
+      method: "get",
+      url: record.url,
+      responseType: "stream",
+      timeout: 25000,
+      headers,
+      maxRedirects: 5,
+      validateStatus: () => true
+    });
+
+    const contentType = upstream.headers["content-type"] || "";
+    const treatAsPlaylist = isHlsPlaylist(contentType, record.url);
+    const statusCode = upstream.status || 200;
+
+    if (treatAsPlaylist) {
+      const chunks = [];
+      upstream.data.on("data", (chunk) => chunks.push(chunk));
+      upstream.data.on("error", (err) => {
+        console.error("Proxy playlist stream error:", err.message);
+        if (!res.headersSent) res.status(502).json({ error: "proxy_stream_error" });
+      });
+      upstream.data.on("end", () => {
+        try {
+          const body = Buffer.concat(chunks).toString("utf8");
+          const rewritten = rewritePlaylist(body, record.url);
+          res.status(statusCode);
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("Content-Type", contentType || "application/vnd.apple.mpegurl");
+          res.send(rewritten);
+        } catch (err) {
+          console.error("Playlist rewrite error:", err.message);
+          if (!res.headersSent) res.status(500).json({ error: "playlist_rewrite_failed" });
+        }
+      });
+    } else {
+      res.status(statusCode);
+      res.setHeader("Cache-Control", "no-store");
+
+      const passthroughHeaders = ["content-type", "content-length", "accept-ranges", "content-range"];
+      passthroughHeaders.forEach((header) => {
+        if (upstream.headers[header]) {
+          res.setHeader(header, upstream.headers[header]);
+        }
+      });
+
+      upstream.data.pipe(res);
+      upstream.data.on("error", (err) => {
+        console.error("Proxy stream pipeline error:", err.message);
+        res.destroy(err);
+      });
+    }
+  } catch (error) {
+    console.error("Proxy stream error:", error.message);
+    if (!res.headersSent) {
+      res.status(502).json({ error: "proxy_stream_failed" });
+    }
+  }
 });
 
 app.get("/api/categories", (req, res) => {
