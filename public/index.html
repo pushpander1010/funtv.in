@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>funtv.in - India's Premier Streaming Platform</title>
+    <meta name="description" content="Watch thousands of live TV channels, movies, and shows from around the world. Free streaming with multiple sources and smart fallback technology.">
+    <meta name="keywords" content="live tv, streaming, india, iptv, free tv, online tv, entertainment">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header Ad Space -->
+    <div class="ad-space header-ad">
+        <div class="ad-placeholder">Advertisement - 728x90</div>
+    </div>
+
+    <header>
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-play-circle"></i>
+                <span class="brand-name">funtv.in</span>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search Indian & Global channels...">
+                <i class="fas fa-search"></i>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="controls">
+                <div class="filter-section">
+                    <select id="categoryFilter">
+                        <option value="all">All Categories</option>
+                    </select>
+                    <div class="validation-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="validatedOnly" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label">Verified Channels Only</span>
+                    </div>
+                </div>
+                <div class="stats">
+                    <div class="validation-status" id="validationStatus">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Checking channels...</span>
+                    </div>
+                    <div class="source-info" id="sourceInfo">
+                        <i class="fas fa-database"></i>
+                        <span>Loading sources...</span>
+                    </div>
+                    <span id="channelCount">Loading...</span>
+                    <button id="refreshBtn"><i class="fas fa-sync-alt"></i></button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- Sidebar Ad -->
+                <div class="sidebar-ad">
+                    <div class="ad-placeholder vertical">Ad<br>160x600</div>
+                </div>
+
+                <!-- Channels Grid -->
+                <div class="channels-container">
+                    <div id="channelsGrid" class="channels-grid">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading channels...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar Ad -->
+                <div class="sidebar-ad">
+                    <div class="ad-placeholder vertical">Ad<br>160x600</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Video Player Modal -->
+    <div id="playerModal" class="player-modal">
+        <div class="player-container">
+            <div class="player-header">
+                <h3 id="playerTitle">Channel Name</h3>
+                <button id="closePlayer"><i class="fas fa-times"></i></button>
+            </div>
+            <video id="videoPlayer" controls autoplay></video>
+            <div class="player-ad">
+                <div class="ad-placeholder">Advertisement - 728x90</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
