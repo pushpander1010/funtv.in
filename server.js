@@ -699,7 +699,7 @@ async function loadChannels() {
 // API routes
 // ---------------------------
 app.get("/api/channels", (req, res) => {
-  const { category, country, search, allowInsecure } = req.query;
+  const { category, country, search, allowInsecure, channelId } = req.query;
 
   // Default behavior: when the site is opened over HTTPS, return only HTTPS streams.
   // This prevents browser mixed-content warnings and hard-blocked playback.
@@ -737,8 +737,25 @@ app.get("/api/channels", (req, res) => {
     };
   });
 
+  let finalChannels = channelsWithAlternatives.slice(0, 100);
+
+  if (channelId) {
+    const normalizedId = channelId.toString();
+    const alreadyIncluded = finalChannels.some((channel) => String(channel.id) === normalizedId);
+    if (!alreadyIncluded) {
+      const target = filtered.find((channel) => String(channel.id) === normalizedId);
+      if (target) {
+        const preparedTarget = prepareChannelForBrowser(target, allow);
+        finalChannels.unshift({
+          ...preparedTarget,
+          alternativesCount: channelAlternatives.has(target.id) ? channelAlternatives.get(target.id).length : 0
+        });
+      }
+    }
+  }
+
   res.json({
-    channels: channelsWithAlternatives.slice(0, 100),
+    channels: finalChannels,
     total: filtered.length,
     blockedInsecure: allow ? 0 : 0,
     proxiedStreams,

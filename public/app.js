@@ -13,6 +13,9 @@ class StreamVerse {
     this.renderedCount = 0;     // how many cards already on screen
     this.filteredChannels = []; // after filter/search
     this.countrySet = new Set();
+    const urlParams = new URLSearchParams(window.location.search);
+    this.sharedChannelId = urlParams.get('channel');
+    this.pendingPlayChannelId = this.sharedChannelId;
 
     this.userClosedPlayer = false;
     this.autoSwitchEnabled = true;
@@ -179,6 +182,7 @@ class StreamVerse {
     if (this.currentFilter !== 'all') params.append('category', this.currentFilter);
     if (this.currentCountry !== 'all') params.append('country', this.currentCountry);
     if (this.currentSearch) params.append('search', this.currentSearch);
+    if (this.pendingPlayChannelId) params.append('channelId', this.pendingPlayChannelId);
     const query = params.toString();
     const response = await fetch(query ? `/api/channels?${query}` : '/api/channels');
     const data = await response.json();
@@ -251,6 +255,7 @@ class StreamVerse {
     }
 
     this.renderNextBatch();
+    this.maybeAutoPlaySharedChannel();
   }
 
   getChannelTags(channel) {
@@ -283,18 +288,10 @@ class StreamVerse {
   }
 
   getChannelShareLink(channel) {
-    if (!channel?.url) {
-      return window.location.origin;
+    if (channel?.id !== undefined && channel?.id !== null) {
+      return `${window.location.origin}?channel=${encodeURIComponent(channel.id)}`;
     }
-
-    try {
-      if (channel.url.startsWith('http')) {
-        return channel.url;
-      }
-      return `${window.location.origin}${channel.url}`;
-    } catch {
-      return window.location.origin;
-    }
+    return window.location.origin;
   }
 
   async shareChannel(channel) {
@@ -321,6 +318,28 @@ class StreamVerse {
       console.warn('clipboard share failed', err);
       window.prompt('Copy this link and share it:', shareUrl);
     }
+  }
+
+  maybeAutoPlaySharedChannel() {
+    if (!this.pendingPlayChannelId) return;
+    const idx = this.channels.findIndex((ch) => String(ch.id) === String(this.pendingPlayChannelId));
+    if (idx === -1) return;
+
+    this.pendingPlayChannelId = null;
+    this.sharedChannelId = null;
+
+    setTimeout(() => {
+      this.playChannel(idx);
+      this.clearShareQueryParam();
+    }, 300);
+  }
+
+  clearShareQueryParam() {
+    if (!window?.history?.replaceState) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('channel');
+    const newUrl = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState({}, document.title, newUrl);
   }
 
   renderNextBatch() {
