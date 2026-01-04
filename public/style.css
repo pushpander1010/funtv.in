@@ -639,6 +639,34 @@ input:checked + .slider:before { transform: translateX(26px); }
 
 .channel-card > * { position: relative; z-index: 1; }
 
+.channel-card .share-btn {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  z-index: 2;
+}
+
+.channel-card .share-btn:hover {
+  background: rgba(59,130,246,0.25);
+  border-color: rgba(59,130,246,0.6);
+  transform: scale(1.08);
+}
+
+.channel-card .share-btn i {
+  pointer-events: none;
+}
+
 .channel-logo {
   width: 64px;
   height: 64px;

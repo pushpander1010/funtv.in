@@ -2,7 +2,9 @@ class StreamVerse {
   constructor() {
     this.channels = [];
     this.categories = [];
+    this.countries = [];
     this.currentFilter = 'all';
+    this.currentCountry = 'all';
     this.currentSearch = '';
     this.currentChannelIndex = -1;
 
@@ -10,6 +12,7 @@ class StreamVerse {
     this.batchSize = 48;        // how many cards to add per load
     this.renderedCount = 0;     // how many cards already on screen
     this.filteredChannels = []; // after filter/search
+    this.countrySet = new Set();
 
     this.userClosedPlayer = false;
     this.autoSwitchEnabled = true;
@@ -27,11 +30,10 @@ class StreamVerse {
   bindElements() {
     this.channelsGrid = document.getElementById('channelsGrid');
     this.categoryFilter = document.getElementById('categoryFilter');
+    this.countryFilter = document.getElementById('countryFilter');
     this.searchInput = document.getElementById('searchInput');
     this.refreshBtn = document.getElementById('refreshBtn');
     this.channelCount = document.getElementById('channelCount');
-    this.validatedOnly = document.getElementById('validatedOnly');
-    this.validationStatus = document.getElementById('validationStatus');
     this.sourceInfo = document.getElementById('sourceInfo');
 
     this.playerModal = document.getElementById('playerModal');
@@ -45,19 +47,24 @@ class StreamVerse {
   }
 
   bindEvents() {
-    this.categoryFilter.addEventListener('change', (e) => {
-      this.currentFilter = e.target.value;
-      this.applyFiltersAndRender(true);
-    });
+    if (this.categoryFilter) {
+      this.categoryFilter.addEventListener('change', (e) => {
+        this.currentFilter = e.target.value;
+        this.reloadChannelsForFilters();
+      });
+    }
+
+    if (this.countryFilter) {
+      this.countryFilter.addEventListener('change', (e) => {
+        this.currentCountry = e.target.value;
+        this.reloadChannelsForFilters();
+      });
+    }
 
     const debounced = this.debounce(() => this.applyFiltersAndRender(true), 250);
     this.searchInput.addEventListener('input', (e) => {
       this.currentSearch = e.target.value || '';
       debounced();
-    });
-
-    this.validatedOnly.addEventListener('change', () => {
-      this.loadData();
     });
 
     this.refreshBtn.addEventListener('click', () => {
@@ -74,7 +81,6 @@ class StreamVerse {
       if (e.key === 'Escape') this.closeVideoPlayer();
     });
 
-    setInterval(() => this.updateValidationStatus(), 5000);
   }
 
   setupInfiniteScroll() {
@@ -107,13 +113,14 @@ class StreamVerse {
     try {
       this.showLoading();
 
-      const validated = this.validatedOnly.checked;
-      const categoriesRes = await fetch(`/api/categories?validated=${validated}`);
-      this.categories = await categoriesRes.json();
-      this.populateCategories();
+      const filtersRes = await fetch(`/api/categories`);
+      const filters = await filtersRes.json();
+      this.categories = filters.categories || [];
+      this.countries = filters.countries || [];
+      this.countrySet = new Set((this.countries || []).map((country) => country.toLowerCase()));
+      this.populateFilters();
 
       await this.loadChannelsFromAPI();
-      await this.updateValidationStatus();
       await this.loadSourceInfo();
 
       this.applyFiltersAndRender(true);
@@ -140,46 +147,40 @@ class StreamVerse {
     }
   }
 
-  async updateValidationStatus() {
-    try {
-      const response = await fetch('/api/validation-status');
-      const status = await response.json();
-
-      if (status.validationInProgress) {
-        this.validationStatus.className = 'validation-status checking';
-        this.validationStatus.innerHTML = `
-          <i class="fas fa-spinner"></i>
-          <span>Verifying channels... ${status.validatedCount}/${Math.min(status.totalChannels, 800)}</span>
-        `;
-      } else {
-        this.validationStatus.className = 'validation-status complete';
-        this.validationStatus.innerHTML = `
-          <i class="fas fa-check-circle"></i>
-          <span>${status.validatedCount} verified channels</span>
-        `;
-      }
-    } catch (e) {
-      console.error('validation status error', e);
-    }
+  populateFilters() {
+    this.populateSelect(this.categoryFilter, this.categories, 'All Categories', this.currentFilter);
+    this.populateSelect(this.countryFilter, this.countries, 'All Countries', this.currentCountry);
   }
 
-  populateCategories() {
-    this.categoryFilter.innerHTML = '<option value="all">All Categories</option>';
-    this.categories.forEach(category => {
+  populateSelect(selectEl, values = [], placeholder, currentValue) {
+    if (!selectEl) return;
+
+    const previousValue = currentValue || 'all';
+    selectEl.innerHTML = `<option value="all">${placeholder}</option>`;
+
+    values.forEach((value) => {
       const opt = document.createElement('option');
-      opt.value = category;
-      opt.textContent = category;
-      this.categoryFilter.appendChild(opt);
+      opt.value = value;
+      opt.textContent = value;
+      selectEl.appendChild(opt);
     });
+
+    if (previousValue !== 'all' && values.includes(previousValue)) {
+      selectEl.value = previousValue;
+    } else {
+      selectEl.value = 'all';
+      if (selectEl === this.categoryFilter) this.currentFilter = 'all';
+      if (selectEl === this.countryFilter) this.currentCountry = 'all';
+    }
   }
 
   async loadChannelsFromAPI() {
     const params = new URLSearchParams();
     if (this.currentFilter !== 'all') params.append('category', this.currentFilter);
+    if (this.currentCountry !== 'all') params.append('country', this.currentCountry);
     if (this.currentSearch) params.append('search', this.currentSearch);
-    if (this.validatedOnly.checked) params.append('validated', 'true');
-
-    const response = await fetch(`/api/channels?${params}`);
+    const query = params.toString();
+    const response = await fetch(query ? `/api/channels?${query}` : '/api/channels');
     const data = await response.json();
     this.channels = data.channels || [];
 
@@ -188,27 +189,44 @@ class StreamVerse {
     this.blockedInsecure = data.blockedInsecure || 0;
     this.proxiedStreams = data.proxiedStreams || 0;
 
-    const statusText = this.validatedOnly.checked ? 'verified' : 'total';
     let extra = '';
     if (this.blockedInsecure > 0) {
       extra = ` (blocked ${this.blockedInsecure} insecure)`;
     } else if (this.proxiedStreams > 0) {
       extra = ` (secured ${this.proxiedStreams} via proxy)`;
     }
-    this.channelCount.textContent = `${this.channels.length} ${statusText} channels${extra}`;
+    this.channelCount.textContent = `${this.channels.length} channels${extra}`;
+  }
+
+  async reloadChannelsForFilters() {
+    try {
+      this.showLoading();
+      await this.loadChannelsFromAPI();
+      this.applyFiltersAndRender(true);
+    } catch (e) {
+      console.error('filter reload error', e);
+      this.showError('Failed to load channels. Refresh and try again.');
+    }
   }
 
   applyFiltersAndRender(reset) {
     // client-side filter/search for instant UI (API already filters, this is extra safe)
     const q = this.currentSearch.trim().toLowerCase();
+    const selectedCategory = this.currentFilter.toLowerCase();
+    const selectedCountry = this.currentCountry.toLowerCase();
 
     this.filteredChannels = this.channels.filter(ch => {
+      const tags = this.getChannelTags(ch);
       const okCat = (this.currentFilter === 'all')
         ? true
-        : (String(ch.category).toLowerCase() === String(this.currentFilter).toLowerCase());
+        : tags.categories.some(cat => cat.toLowerCase() === selectedCategory);
+
+      const okCountry = (this.currentCountry === 'all')
+        ? true
+        : tags.countries.some(ctry => ctry.toLowerCase() === selectedCountry);
 
       const okSearch = !q ? true : (String(ch.name).toLowerCase().includes(q));
-      return okCat && okSearch;
+      return okCat && okCountry && okSearch;
     });
 
     if (reset) {
@@ -233,6 +251,76 @@ class StreamVerse {
     }
 
     this.renderNextBatch();
+  }
+
+  getChannelTags(channel) {
+    if (!channel) return { categories: [], countries: [] };
+
+    const tokens = String(channel.category || '')
+      .split(';')
+      .map(token => token.trim())
+      .filter(Boolean);
+
+    const categories = [];
+    const countries = [];
+    const seenCategories = new Set();
+    const seenCountries = new Set();
+
+    tokens.forEach((token) => {
+      const normalized = token.toLowerCase();
+      if (this.countrySet.has(normalized)) {
+        if (!seenCountries.has(normalized)) {
+          countries.push(token);
+          seenCountries.add(normalized);
+        }
+      } else if (!seenCategories.has(normalized)) {
+        categories.push(token);
+        seenCategories.add(normalized);
+      }
+    });
+
+    return { categories, countries };
+  }
+
+  getChannelShareLink(channel) {
+    if (!channel?.url) {
+      return window.location.origin;
+    }
+
+    try {
+      if (channel.url.startsWith('http')) {
+        return channel.url;
+      }
+      return `${window.location.origin}${channel.url}`;
+    } catch {
+      return window.location.origin;
+    }
+  }
+
+  async shareChannel(channel) {
+    if (!channel) return;
+    const shareUrl = this.getChannelShareLink(channel);
+    const title = channel.name || 'StreamVerse Channel';
+    const text = `Watch ${title} on StreamVerse`;
+    const shareData = { title, text, url: shareUrl };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        console.warn('native share failed', err);
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Channel link copied! Share it with your friends.');
+    } catch (err) {
+      console.warn('clipboard share failed', err);
+      window.prompt('Copy this link and share it:', shareUrl);
+    }
   }
 
   renderNextBatch() {
@@ -260,10 +348,20 @@ class StreamVerse {
         <div class="channel-name">${safeName}</div>
         <div class="channel-info">
           <span class="channel-category">${safeCat}</span>
-          ${this.validatedOnly.checked ? `<span class="verified-badge"><i class="fas fa-check-circle"></i> Verified</span>` : ''}
           ${channel.source ? `<span class="source-badge">${this.escapeHtml(String(channel.source).split(' ')[0])}</span>` : ''}
         </div>
       `;
+
+      const shareBtn = document.createElement('button');
+      shareBtn.className = 'share-btn';
+      shareBtn.type = 'button';
+      shareBtn.title = 'Share this channel';
+      shareBtn.innerHTML = '<i class="fas fa-share-alt"></i>';
+      shareBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.shareChannel(channel);
+      });
+      card.appendChild(shareBtn);
 
       frag.appendChild(card);
     });

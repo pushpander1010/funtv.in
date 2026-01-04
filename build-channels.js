@@ -29,8 +29,7 @@ function parseM3U(content, sourceName, sourceType) {
         category: groupMatch ? groupMatch[1] : 'General',
         source: sourceName,
         type: sourceType,
-        url: '',
-        validated: false
+        url: ''
       };
     } else if (line && !line.startsWith('#') && current.name) {
       if (line.startsWith('http')) {
@@ -136,7 +135,6 @@ async function saveChannelsToCache(channels) {
     const cacheData = {
       timestamp: new Date().toISOString(),
       channels: channels,
-      validatedChannels: [],
       channelAlternatives: Array.from(channelAlternatives.entries()),
       sourceStats: sourceStats
     };

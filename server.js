@@ -15,12 +15,304 @@ const PORT = process.env.PORT || 3000;
 // State
 // ---------------------------
 let channels = [];
-let validatedChannels = [];
 let channelAlternatives = new Map();
-let validationInProgress = false;
 let sourceStats = {};
 let channelsLoaded = false;
 const insecureStreamMap = new Map();
+let channelTagCache = new WeakMap();
+
+const COUNTRY_NAMES = [
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cabo Verde",
+  "Cambodia",
+  "Cameroon",
+  "Canada",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Cote d'Ivoire",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czech Republic",
+  "Democratic Republic of the Congo",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kosovo",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Palestine",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Africa",
+  "South Korea",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Taiwan",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Timor-Leste",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe",
+  "Hong Kong",
+  "Macau",
+  "Puerto Rico"
+];
+
+const EXTRA_COUNTRY_TOKENS = [
+  "usa",
+  "us",
+  "u.s.",
+  "u.s.a.",
+  "uk",
+  "u.k.",
+  "uae",
+  "u.a.e.",
+  "ksa",
+  "england",
+  "scotland",
+  "wales",
+  "northern ireland",
+  "trinidad",
+  "czechia"
+];
+
+const COUNTRY_NAME_SET = new Set([...COUNTRY_NAMES.map((name) => name.toLowerCase()), ...EXTRA_COUNTRY_TOKENS]);
+
+function resetChannelTagCache() {
+  channelTagCache = new WeakMap();
+}
+
+function normalizeToken(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isCountryToken(value) {
+  const normalized = normalizeToken(value);
+  if (!normalized) return false;
+  return COUNTRY_NAME_SET.has(normalized);
+}
+
+function getChannelTagBuckets(channel) {
+  if (channelTagCache.has(channel)) {
+    return channelTagCache.get(channel);
+  }
+
+  const raw = String(channel?.category || "");
+  const tokens = raw
+    .split(";")
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  const seenCategories = new Set();
+  const seenCountries = new Set();
+  const categories = [];
+  const countries = [];
+
+  tokens.forEach((token) => {
+    const normalized = token.toLowerCase();
+    if (isCountryToken(token)) {
+      if (!seenCountries.has(normalized)) {
+        countries.push(token);
+        seenCountries.add(normalized);
+      }
+    } else if (!seenCategories.has(normalized)) {
+      categories.push(token);
+      seenCategories.add(normalized);
+    }
+  });
+
+  const buckets = { categories, countries };
+  channelTagCache.set(channel, buckets);
+  return buckets;
+}
+
+function collectFilterOptions(list) {
+  const categoryMap = new Map();
+  const countryMap = new Map();
+
+  list.forEach((channel) => {
+    const { categories, countries } = getChannelTagBuckets(channel);
+    categories.forEach((category) => {
+      const normalized = category.toLowerCase();
+      if (!categoryMap.has(normalized)) categoryMap.set(normalized, category);
+    });
+    countries.forEach((country) => {
+      const normalized = country.toLowerCase();
+      if (!countryMap.has(normalized)) countryMap.set(normalized, country);
+    });
+  });
+
+  return {
+    categories: Array.from(categoryMap.values()).sort((a, b) => a.localeCompare(b)),
+    countries: Array.from(countryMap.values()).sort((a, b) => a.localeCompare(b))
+  };
+}
 
 // ---------------------------
 // Middleware
@@ -77,7 +369,7 @@ async function loadChannelsFromCache() {
     const cached = JSON.parse(cacheData);
 
     channels = cached.channels || [];
-    validatedChannels = cached.validatedChannels || [];
+    resetChannelTagCache();
     channelAlternatives = new Map(cached.channelAlternatives || []);
     sourceStats = cached.sourceStats || {};
 
@@ -96,7 +388,6 @@ async function saveChannelsToCache() {
     const cacheData = {
       timestamp: new Date().toISOString(),
       channels,
-      validatedChannels,
       channelAlternatives: Array.from(channelAlternatives.entries()),
       sourceStats
     };
@@ -384,121 +675,6 @@ async function loadChannelsFromSources() {
 }
 
 // ---------------------------
-// Stream validation
-// ---------------------------
-async function validateStream(url, channelType = "iptv", timeout = 12000) {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    let response;
-    try {
-      response = await axios.head(url, {
-        timeout,
-        signal: controller.signal,
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          Accept: channelType === "radio" ? "audio/*" : "video/*,application/*"
-        },
-        maxRedirects: 5
-      });
-    } catch {
-      response = await axios.get(url, {
-        timeout: Math.floor(timeout / 2),
-        signal: controller.signal,
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          Range: "bytes=0-2048"
-        },
-        maxRedirects: 5
-      });
-    }
-
-    clearTimeout(timeoutId);
-
-    const contentType = response.headers["content-type"] || "";
-    const contentLength = response.headers["content-length"];
-    const isValidStatus = response.status === 200 || response.status === 206;
-
-    let hasValidContentType = false;
-    if (channelType === "radio") {
-      hasValidContentType =
-        contentType.includes("audio/") ||
-        contentType.includes("application/ogg") ||
-        url.includes(".mp3") ||
-        url.includes(".aac") ||
-        url.includes("radio");
-    } else {
-      hasValidContentType =
-        contentType.includes("video/") ||
-        contentType.includes("application/vnd.apple.mpegurl") ||
-        contentType.includes("application/x-mpegURL") ||
-        contentType.includes("application/dash+xml") ||
-        contentType.includes("application/octet-stream") ||
-        url.includes(".m3u8") ||
-        url.includes(".ts") ||
-        url.includes("playlist");
-    }
-
-    const hasReasonableSize = !contentLength || parseInt(contentLength, 10) > 100;
-    return isValidStatus && (hasValidContentType || hasReasonableSize);
-  } catch {
-    return false;
-  }
-}
-
-function getSourceBreakdown() {
-  const breakdown = {};
-  validatedChannels.forEach((channel) => {
-    breakdown[channel.source] = (breakdown[channel.source] || 0) + 1;
-  });
-  return breakdown;
-}
-
-async function validateChannels() {
-  if (validationInProgress) return;
-  validationInProgress = true;
-  validatedChannels = [];
-
-  console.log(`Starting validation of ${channels.length} channels...`);
-
-  const sortedChannels = [...channels].sort((a, b) => {
-    const aPriority = STREAMING_SOURCES.find((s) => s.name === a.source)?.priority || 999;
-    const bPriority = STREAMING_SOURCES.find((s) => s.name === b.source)?.priority || 999;
-    if (aPriority !== bPriority) return aPriority - bPriority;
-    return (a.type || "").localeCompare(b.type || "");
-  });
-
-  const batchSize = 25;
-  const maxChannels = 800;
-  const toValidate = sortedChannels.slice(0, maxChannels);
-
-  for (let i = 0; i < toValidate.length; i += batchSize) {
-    const batch = toValidate.slice(i, i + batchSize);
-
-    const results = await Promise.all(
-      batch.map(async (channel) => {
-        const ok = await validateStream(channel.url, channel.type);
-        return ok ? channel : null;
-      })
-    );
-
-    const valid = results.filter(Boolean);
-    validatedChannels.push(...valid);
-
-    console.log(
-      `Validated batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(toValidate.length / batchSize)}: ${valid.length}/${batch.length} working`
-    );
-
-    await new Promise((r) => setTimeout(r, 50));
-  }
-
-  console.log(`Validation complete: ${validatedChannels.length} working channels found`);
-  console.log("Source breakdown:", getSourceBreakdown());
-  validationInProgress = false;
-}
-
-// ---------------------------
 // Load channels (cache first)
 // ---------------------------
 async function loadChannels() {
@@ -507,6 +683,7 @@ async function loadChannels() {
 
     if (!cacheLoaded) {
       channels = await loadChannelsFromSources();
+      resetChannelTagCache();
       await saveChannelsToCache();
     }
 
@@ -518,39 +695,32 @@ async function loadChannels() {
   }
 }
 
-// In serverless, timeouts are unreliable; still keep it, but do not depend on it.
-function startValidationAfterDeployment() {
-  const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL;
-  const delay = isProduction ? 120000 : 30000;
-
-  console.log(`Validation scheduled in ${delay / 1000}s`);
-  setTimeout(async () => {
-    try {
-      if (channelsLoaded && validatedChannels.length === 0 && !validationInProgress) {
-        console.log("Starting channel validation (post-deployment)...");
-        await validateChannels();
-      }
-    } catch (e) {
-      console.error("Error starting validation:", e.message);
-    }
-  }, delay);
-}
-
 // ---------------------------
 // API routes
 // ---------------------------
 app.get("/api/channels", (req, res) => {
-  const { category, search, validated, allowInsecure } = req.query;
+  const { category, country, search, allowInsecure } = req.query;
 
   // Default behavior: when the site is opened over HTTPS, return only HTTPS streams.
   // This prevents browser mixed-content warnings and hard-blocked playback.
   const allow = allowInsecure === "true" || allowInsecure === "1" || !isHttpsRequest(req);
 
-  const sourceChannels = validated === "true" && validatedChannels.length > 0 ? validatedChannels : channels;
-  let filtered = [...sourceChannels];
+  let filtered = [...channels];
 
   if (category && category !== "all") {
-    filtered = filtered.filter((ch) => ch.category && ch.category.toLowerCase().includes(String(category).toLowerCase()));
+    const normalizedCategory = category.toLowerCase();
+    filtered = filtered.filter((ch) => {
+      const { categories } = getChannelTagBuckets(ch);
+      return categories.some((cat) => cat.toLowerCase() === normalizedCategory);
+    });
+  }
+
+  if (country && country !== "all") {
+    const normalizedCountry = country.toLowerCase();
+    filtered = filtered.filter((ch) => {
+      const { countries } = getChannelTagBuckets(ch);
+      return countries.some((token) => token.toLowerCase() === normalizedCountry);
+    });
   }
 
   if (search) {
@@ -572,9 +742,7 @@ app.get("/api/channels", (req, res) => {
     total: filtered.length,
     blockedInsecure: allow ? 0 : 0,
     proxiedStreams,
-    validatedCount: validatedChannels.length,
     totalChannels: channels.length,
-    validationInProgress,
     alternativesAvailable: channelAlternatives.size
   });
 });
@@ -673,10 +841,8 @@ app.get("/api/stream/:token", async (req, res) => {
 });
 
 app.get("/api/categories", (req, res) => {
-  const { validated } = req.query;
-  const sourceChannels = validated === "true" && validatedChannels.length > 0 ? validatedChannels : channels;
-  const categories = [...new Set(sourceChannels.map((ch) => ch.category))].sort();
-  res.json(categories);
+  const filters = collectFilterOptions(channels);
+  res.json(filters);
 });
 
 app.get("/api/health", (req, res) => {
@@ -690,9 +856,7 @@ app.get("/api/health", (req, res) => {
     environment: process.env.NODE_ENV || "development",
     vercel: !!process.env.VERCEL,
     channels: {
-      total: channels.length,
-      validated: validatedChannels.length,
-      validationInProgress
+      total: channels.length
     },
     sources: {
       total: totalSources,
@@ -703,48 +867,6 @@ app.get("/api/health", (req, res) => {
     uptime: process.uptime(),
     memory: process.memoryUsage()
   });
-});
-
-app.get("/api/validation-status", (req, res) => {
-  res.json({
-    validatedCount: validatedChannels.length,
-    totalChannels: channels.length,
-    validationInProgress,
-    sourceStats,
-    sourceBreakdown: getSourceBreakdown()
-  });
-});
-
-app.post("/api/validation/start", async (req, res) => {
-  try {
-    if (validationInProgress) {
-      return res.json({
-        status: "already_running",
-        message: "Validation is already in progress",
-        validatedCount: validatedChannels.length,
-        totalChannels: channels.length
-      });
-    }
-
-    if (validatedChannels.length > 0) {
-      return res.json({
-        status: "already_validated",
-        message: "Channels are already validated",
-        validatedCount: validatedChannels.length,
-        totalChannels: channels.length
-      });
-    }
-
-    validateChannels();
-    res.json({
-      status: "started",
-      message: "Validation started successfully",
-      validatedCount: validatedChannels.length,
-      totalChannels: channels.length
-    });
-  } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
-  }
 });
 
 app.get("/api/sources", (req, res) => {
@@ -775,9 +897,7 @@ app.get("*", (req, res) => {
 // ---------------------------
 // Init
 // ---------------------------
-loadChannels().then(() => {
-  startValidationAfterDeployment();
-});
+loadChannels();
 
 // ---------------------------
 // Local dev only
