@@ -770,3 +770,18 @@ footer {
   background: rgba(99,102,241,0.2);
   border-color: var(--primary);
 }
+
+/* Fix: sentinel must not participate in grid */
+#scrollSentinel {
+  grid-column: 1 / -1;
+  height: 1px !important;
+  width: 100% !important;
+}
+.channels-container {
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure channels come first, sidebar second */
+.content-area > .channels-container { order: 0; }
+.content-area > .sidebar-ad { order: 1; }
