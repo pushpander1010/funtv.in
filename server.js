@@ -443,6 +443,45 @@ const STREAMING_SOURCES = [
   { name: "Radio Browser Recent", url: "https://de1.api.radio-browser.info/m3u/stations/lastchange/200", type: "radio", priority: 52 }
 ];
 
+// YouTube full movies (legal public domain/classic films)
+STREAMING_SOURCES.push(
+  { name: "YouTube Classic Movies", url: "https://raw.githubusercontent.com/nicholasgasior/yt-m3u/main/movies.m3u", type: "webtv", priority: 41 }
+);
+
+// ---------------------------
+// Pluto TV API (reliable legal source)
+// ---------------------------
+async function fetchPlutoTVChannels() {
+  try {
+    console.log("Fetching Pluto TV channels...");
+    const response = await axios.get(
+      "https://service-channels.pluto.tv/v2/guide/channels?start=now&stop=now+24h",
+      { timeout: 30000, headers: { "User-Agent": "funtv.in/1.0" } }
+    );
+    const plutoChannels = [];
+    for (const ch of (response.data || [])) {
+      const stream = ch.stitched?.live?.timeline?.[0]?.playback?.sources?.[0]?.url
+        || ch.stitched?.live?.timeline?.[0]?.playback?.manifest?.url
+        || "";
+      if (!stream) continue;
+      plutoChannels.push({
+        id: `pluto_${ch._id}`,
+        name: ch.name || "Pluto TV Channel",
+        logo: ch.images?.find(i => i.type === "logo")?.url || ch.images?.[0]?.url || "",
+        category: ch.category || "Entertainment",
+        source: "Pluto TV",
+        type: "pluto",
+        url: stream,
+      });
+    }
+    console.log(`Pluto TV: ${plutoChannels.length} channels`);
+    return plutoChannels;
+  } catch (err) {
+    console.warn("Pluto TV fetch failed:", err.message);
+    return [];
+  }
+}
+
 // ---------------------------
 // Helpers
 // ---------------------------
@@ -667,6 +706,13 @@ async function loadChannelsFromSources() {
         channelAlternatives.set(primary.id, alternatives.slice(1));
       }
     }
+  }
+
+  // Fetch Pluto TV channels (reliable legal source)
+  const plutoChannels = await fetchPlutoTVChannels();
+  allChannels.push(...plutoChannels);
+  if (plutoChannels.length > 0) {
+    sourceStats["Pluto TV"] = { channels: plutoChannels.length, status: "success", type: "pluto", attempts: 1 };
   }
 
   console.log(`Total channels loaded: ${allChannels.length}`);
@@ -903,6 +949,153 @@ app.get("/api/sources", (req, res) => {
 // Serve main page
 app.get("/", (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "index.html"));
+});
+
+// ---------------------------
+// SEO Landing Pages
+// ---------------------------
+const CATEGORY_CONTENT = {
+  news: { title: "News", desc: "Stay updated with live news channels from around the world. Stream breaking news, politics, business, and world events 24/7.", related: ["sports", "entertainment", "documentary"] },
+  sports: { title: "Sports", desc: "Watch live sports channels — football, cricket, basketball, tennis, and more. Stream matches and sports news from global broadcasters.", related: ["news", "entertainment", "music"] },
+  entertainment: { title: "Entertainment", desc: "Enjoy entertainment TV channels — reality shows, dramas, comedy, talk shows, and lifestyle content from around the world.", related: ["movies", "news", "music"] },
+  movies: { title: "Movies", desc: "Stream free movies on demand — action, comedy, drama, horror, and classic films. Curated from Pluto TV, Tubi, and other legal free sources.", related: ["entertainment", "documentary", "kids"] },
+  music: { title: "Music", desc: "Listen to live music TV and radio stations — pop, rock, classical, hip-hop, Bollywood, and more from global broadcasters.", related: ["entertainment", "radio", "kids"] },
+  kids: { title: "Kids", desc: "Safe kids TV channels — cartoons, educational shows, and family-friendly entertainment for children of all ages.", related: ["entertainment", "movies", "music"] },
+  documentary: { title: "Documentary", desc: "Watch documentary channels — nature, science, history, technology, and true crime. Educational content from around the world.", related: ["news", "movies", "kids"] },
+  radio: { title: "Radio", desc: "Listen to global radio stations — live FM/AM broadcasts, internet radio, and podcasts from 200+ countries.", related: ["music", "news", "entertainment"] },
+};
+
+function generateCategoryPage(slug) {
+  const cat = CATEGORY_CONTENT[slug] || { title: slug.charAt(0).toUpperCase() + slug.slice(1), desc: `Watch ${slug} TV channels for free on funtv.in.`, related: [] };
+  const relatedLinks = cat.related.map(r => `<a href="/category/${r}" class="related-link">${CATEGORY_CONTENT[r]?.title || r}</a>`).join("\n");
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Watch ${cat.title} TV Channels Free Online | funtv.in</title>
+<meta name="description" content="${cat.desc} Stream ${cat.title.toLowerCase()} channels for free — no registration, no ads. funtv.in aggregates free legal streams.">
+<meta name="robots" content="index,follow"><link rel="canonical" href="https://funtv.in/category/${slug}">
+<meta property="og:title" content="Watch ${cat.title} TV Channels Free Online | funtv.in">
+<meta property="og:description" content="${cat.desc}"><meta property="og:type" content="website"><meta property="og:url" content="https://funtv.in/category/${slug}">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Watch ${cat.title} TV Free | funtv.in"><meta name="twitter:description" content="${cat.desc}">
+<link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://funtv.in"},{"@type":"ListItem","position":2,"name":"${cat.title}","item":"https://funtv.in/category/${slug}"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I watch ${cat.title.toLowerCase()} channels on funtv.in?","acceptedAnswer":{"@type":"Answer","text":"Visit funtv.in, select '${cat.title}' from the category filter, and click any channel to start watching. No account needed."}},{"@type":"Question","name":"Are ${cat.title.toLowerCase()} channels on funtv.in free?","acceptedAnswer":{"@type":"Answer","text":"Yes, all channels on funtv.in are completely free. We aggregate from legal public sources."}},{"@type":"Question","name":"Can I watch ${cat.title.toLowerCase()} channels on mobile?","acceptedAnswer":{"@type":"Answer","text":"Yes, funtv.in works on all devices — smartphones, tablets, laptops, and desktops."}}]}</script>
+</head><body><div class="container" style="max-width:800px;margin:0 auto;padding:2rem 1rem;">
+<nav style="margin-bottom:1rem;"><a href="/" style="color:#3b82f6;text-decoration:none;">Home</a> <span style="color:#666;">›</span> <span style="color:#e0e7ff;">${cat.title}</span></nav>
+<h1 style="font-size:2rem;color:#fff;margin-bottom:1rem;">Watch ${cat.title} TV Channels Free Online</h1>
+<p style="color:rgba(255,255,255,0.8);line-height:1.8;margin-bottom:1.5rem;">${cat.desc}</p>
+<p style="color:rgba(255,255,255,0.7);line-height:1.8;margin-bottom:1.5rem;">funtv.in aggregates free ${cat.title.toLowerCase()} channels from legal public sources including IPTV playlists, Pluto TV, Tubi, and radio streams. All content is free to watch — no registration, no subscription, no hidden fees. Just pick a channel and start streaming.</p>
+<p style="color:rgba(255,255,255,0.7);line-height:1.8;margin-bottom:2rem;">Our smart aggregation technology pulls from multiple sources to give you the widest selection of ${cat.title.toLowerCase()} channels available. If one stream goes down, we automatically try alternative sources so you can keep watching without interruption.</p>
+<a href="/?category=${cat.title}" style="display:inline-block;padding:0.75rem 2rem;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin-bottom:2rem;">▶ Watch ${cat.title} Channels Now</a>
+<h2 style="color:#e0e7ff;font-size:1.3rem;margin:2rem 0 1rem;">Related Categories</h2>
+<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:2rem;">${relatedLinks}</div>
+<a href="/" style="display:inline-block;padding:0.75rem 2rem;background:rgba(255,255,255,0.1);color:#e0e7ff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;text-decoration:none;">← Back to All Channels</a>
+</div></body></html>`;
+}
+
+const COUNTRY_CONTENT = {
+  india: { title: "India", desc: "Watch Indian TV channels for free — Hindi, Tamil, Telugu, Kannada, Malayalam, Bengali, and more. News, entertainment, sports, and regional channels." },
+  "united-states": { title: "United States", desc: "Watch US TV channels for free — CNN, Fox, NBC, ESPN, and more. American news, sports, entertainment, and local channels." },
+  "united-kingdom": { title: "United Kingdom", desc: "Watch UK TV channels for free — BBC, ITV, Sky News, Channel 4, and more. British news, entertainment, and sports." },
+  canada: { title: "Canada", desc: "Watch Canadian TV channels for free — CBC, CTV, Global News, and more. Canadian news, sports, and entertainment." },
+  australia: { title: "Australia", desc: "Watch Australian TV channels for free — ABC, SBS, Channel 7, 9News, and more. Australian news, sports, and entertainment." },
+  germany: { title: "Germany", desc: "Watch German TV channels for free — ARD, ZDF, Deutsche Welle, and more. German news, entertainment, and sports." },
+  france: { title: "France", desc: "Watch French TV channels for free — France 24, TV5 Monde, BFM TV, and more. French news, entertainment, and culture." },
+  japan: { title: "Japan", desc: "Watch Japanese TV channels for free — NHK World, Tokyo MX, and more. Japanese news, anime, and entertainment." },
+  brazil: { title: "Brazil", desc: "Watch Brazilian TV channels for free — TV Globo, Band News, and more. Brazilian news, sports, and entertainment." },
+  "south-africa": { title: "South Africa", desc: "Watch South African TV channels for free — SABC, eNCA, and more. South African news, sports, and entertainment." },
+  "united-arab-emirates": { title: "UAE", desc: "Watch UAE TV channels for free — Dubai One, MBC, Al Arabiya, and more. Middle Eastern news, entertainment, and sports." },
+  "saudi-arabia": { title: "Saudi Arabia", desc: "Watch Saudi TV channels for free — Saudi TV, Al Arabiya, and more. Saudi news, entertainment, and sports." },
+  pakistan: { title: "Pakistan", desc: "Watch Pakistani TV channels for free — Geo News, ARY, Hum TV, and more. Pakistani news, dramas, and entertainment." },
+  bangladesh: { title: "Bangladesh", desc: "Watch Bangladeshi TV channels for free — BTV, Channel i, ATN Bangla, and more. Bangladeshi news and entertainment." },
+  "sri-lanka": { title: "Sri Lanka", desc: "Watch Sri Lankan TV channels for free — ITN, Sirasa TV, and more. Sri Lankan news, entertainment, and sports." },
+  nepal: { title: "Nepal", desc: "Watch Nepali TV channels for free — Nepal TV, Kantipur TV, and more. Nepali news, entertainment, and culture." },
+};
+
+function generateCountryPage(slug) {
+  const c = COUNTRY_CONTENT[slug] || { title: slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "), desc: `Watch ${slug} TV channels for free on funtv.in.` };
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Watch ${c.title} TV Channels Free Online | funtv.in</title>
+<meta name="description" content="${c.desc} Stream ${c.title} TV channels for free — no registration required. funtv.in aggregates free legal streams from multiple sources.">
+<meta name="robots" content="index,follow"><link rel="canonical" href="https://funtv.in/country/${slug}">
+<meta property="og:title" content="Watch ${c.title} TV Channels Free Online | funtv.in">
+<meta property="og:description" content="${c.desc}"><meta property="og:type" content="website"><meta property="og:url" content="https://funtv.in/country/${slug}">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Watch ${c.title} TV Free | funtv.in"><meta name="twitter:description" content="${c.desc}">
+<link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://funtv.in"},{"@type":"ListItem","position":2,"name":"${c.title}","item":"https://funtv.in/country/${slug}"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I watch ${c.title} TV channels on funtv.in?","acceptedAnswer":{"@type":"Answer","text":"Visit funtv.in, select '${c.title}' from the country filter, and click any channel to start streaming. No account needed."}},{"@type":"Question","name":"Are ${c.title} channels on funtv.in free?","acceptedAnswer":{"@type":"Answer","text":"Yes, all channels are completely free. We aggregate from legal public IPTV sources, Pluto TV, and radio streams."}},{"@type":"Question","name":"What ${c.title} channels are available?","acceptedAnswer":{"@type":"Answer","text":"We aggregate news, sports, entertainment, movies, music, and kids channels from ${c.title}. Use the category filter to find specific types of content."}}]}</script>
+</head><body><div class="container" style="max-width:800px;margin:0 auto;padding:2rem 1rem;">
+<nav style="margin-bottom:1rem;"><a href="/" style="color:#3b82f6;text-decoration:none;">Home</a> <span style="color:#666;">›</span> <span style="color:#e0e7ff;">${c.title}</span></nav>
+<h1 style="font-size:2rem;color:#fff;margin-bottom:1rem;">Watch ${c.title} TV Channels Free Online</h1>
+<p style="color:rgba(255,255,255,0.8);line-height:1.8;margin-bottom:1.5rem;">${c.desc}</p>
+<p style="color:rgba(255,255,255,0.7);line-height:1.8;margin-bottom:1.5rem;">funtv.in aggregates free ${c.title} TV channels from legal public IPTV sources, Pluto TV, and other streaming platforms. Whether you want to watch news, sports, entertainment, or movies from ${c.title}, we have you covered — all for free, with no registration required.</p>
+<p style="color:rgba(255,255,255,0.7);line-height:1.8;margin-bottom:2rem;">Our platform uses smart aggregation to pull from multiple sources, so even if one stream goes down, alternatives are available. Watch on any device — phone, tablet, laptop, or desktop.</p>
+<a href="/?country=${c.title}" style="display:inline-block;padding:0.75rem 2rem;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin-bottom:2rem;">▶ Watch ${c.title} Channels Now</a>
+<a href="/" style="display:inline-block;padding:0.75rem 2rem;background:rgba(255,255,255,0.1);color:#e0e7ff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;text-decoration:none;margin-left:1rem;">← Back to All Channels</a>
+</div></body></html>`;
+}
+
+app.get("/category/:name", (req, res) => {
+  const slug = req.params.name.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  res.send(generateCategoryPage(slug));
+});
+
+app.get("/country/:name", (req, res) => {
+  const slug = req.params.name.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  res.send(generateCountryPage(slug));
+});
+
+app.get("/about", (req, res) => {
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>About funtv.in — Free Live TV Streaming Platform</title>
+<meta name="description" content="Learn about funtv.in, the free live TV streaming platform aggregating 15,000+ channels, movies, and radio from legal public sources worldwide.">
+<meta name="robots" content="index,follow"><link rel="canonical" href="https://funtv.in/about">
+<meta property="og:title" content="About funtv.in — Free Live TV Streaming"><meta property="og:description" content="Learn about funtv.in — free live TV from legal public sources."><meta property="og:type" content="website">
+<link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"AboutPage","name":"About funtv.in","description":"Free live TV streaming platform","url":"https://funtv.in/about"}</script>
+</head><body><div class="container" style="max-width:800px;margin:0 auto;padding:2rem 1rem;">
+<nav style="margin-bottom:1rem;"><a href="/" style="color:#3b82f6;text-decoration:none;">Home</a> <span style="color:#666;">›</span> <span style="color:#e0e7ff;">About</span></nav>
+<h1 style="font-size:2rem;color:#fff;margin-bottom:1.5rem;">About funtv.in</h1>
+<div style="color:rgba(255,255,255,0.8);line-height:1.9;">
+<p style="margin-bottom:1.5rem;">funtv.in is a free live TV streaming platform that aggregates channels, movies, and radio stations from legal public sources worldwide. Our mission is to make free entertainment accessible to everyone, everywhere — without registration, subscriptions, or hidden fees.</p>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">How It Works</h2>
+<p style="margin-bottom:1.5rem;">We use smart aggregation technology to pull free streams from multiple sources including IPTV playlists, Pluto TV, Tubi, Samsung TV+, Plex Live TV, and global radio stations. When a stream goes down, our system automatically tries alternative sources so you can keep watching without interruption.</p>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">Our Sources</h2>
+<p style="margin-bottom:1rem;">All content on funtv.in comes from legal, publicly available sources:</p>
+<ul style="padding-left:1.5rem;margin-bottom:1.5rem;"><li style="margin-bottom:0.5rem;"><strong>IPTV-org</strong> — Community-curated free IPTV playlists from around the world</li><li style="margin-bottom:0.5rem;"><strong>Pluto TV</strong> — Free ad-supported streaming with 250+ live channels and on-demand movies</li><li style="margin-bottom:0.5rem;"><strong>Tubi</strong> — Free ad-supported movie and TV show library</li><li style="margin-bottom:0.5rem;"><strong>Radio Browser</strong> — Global radio station aggregator with 30,000+ stations</li><li style="margin-bottom:0.5rem;"><strong>YouTube</strong> — Full-length classic and public domain movies</li></ul>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">Privacy</h2>
+<p style="margin-bottom:1.5rem;">We don't store any user data, don't require accounts, and don't track your viewing habits. Your IP address is never logged or shared. We believe privacy is a right, not a feature.</p>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">Contact</h2>
+<p>If you have questions, suggestions, or want to report a broken stream, reach out via email or use the report button on any channel card.</p>
+</div>
+<a href="/" style="display:inline-block;margin-top:2rem;padding:0.75rem 2rem;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">← Back to Home</a>
+</div></body></html>`);
+});
+
+app.get("/how-to-watch", (req, res) => {
+  res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>How to Watch Free TV Online — funtv.in Guide</title>
+<meta name="description" content="Step-by-step guide to watching free live TV channels, movies, and radio on funtv.in. Works on phone, tablet, laptop, and desktop.">
+<meta name="robots" content="index,follow"><link rel="canonical" href="https://funtv.in/how-to-watch">
+<meta property="og:title" content="How to Watch Free TV Online — funtv.in Guide"><meta property="og:description" content="Step-by-step guide to watching free TV on funtv.in."><meta property="og:type" content="website">
+<link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to Watch Free TV on funtv.in","description":"Step-by-step guide to streaming free TV channels","step":[{"@type":"HowToStep","position":1,"name":"Visit funtv.in","text":"Open funtv.in in any web browser on your device."},{"@type":"HowToStep","position":2,"name":"Browse or Search","text":"Use the search bar or category/country filters to find channels."},{"@type":"HowToStep","position":3,"name":"Click a Channel","text":"Click any channel card to open the video player and start streaming."}]}</script>
+</head><body><div class="container" style="max-width:800px;margin:0 auto;padding:2rem 1rem;">
+<nav style="margin-bottom:1rem;"><a href="/" style="color:#3b82f6;text-decoration:none;">Home</a> <span style="color:#666;">›</span> <span style="color:#e0e7ff;">How to Watch</span></nav>
+<h1 style="font-size:2rem;color:#fff;margin-bottom:1.5rem;">How to Watch Free TV Online on funtv.in</h1>
+<div style="color:rgba(255,255,255,0.8);line-height:1.9;">
+<p style="margin-bottom:1.5rem;">funtv.in makes it easy to watch free live TV channels, movies, and radio from around the world. No downloads, no registration, no subscriptions. Here's how to get started:</p>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">Step 1: Visit funtv.in</h2>
+<p style="margin-bottom:1.5rem;">Open your web browser (Chrome, Safari, Firefox, Edge) and go to <strong>funtv.in</strong>. The site works on all devices — smartphones, tablets, laptops, and desktops.</p>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">Step 2: Browse Channels</h2>
+<p style="margin-bottom:1.5rem;">Use the <strong>search bar</strong> to find specific channels by name, or use the <strong>category filter</strong> (News, Sports, Entertainment, Movies, etc.) and <strong>country filter</strong> (India, US, UK, etc.) to narrow down your options.</p>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">Step 3: Start Watching</h2>
+<p style="margin-bottom:1.5rem;">Click any channel card to open the video player. The stream will start playing automatically. If the primary stream doesn't work, our smart fallback system will try alternative sources automatically.</p>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">Tips for Best Experience</h2>
+<ul style="padding-left:1.5rem;margin-bottom:1.5rem;"><li style="margin-bottom:0.5rem;">Use a stable internet connection (5 Mbps recommended for HD)</li><li style="margin-bottom:0.5rem;">Close other streaming apps to free up bandwidth</li><li style="margin-bottom:0.5rem;">Try different channels if one stream is slow — different sources have different speeds</li><li style="margin-bottom:0.5rem;">On mobile, rotate to landscape mode for a better viewing experience</li><li style="margin-bottom:0.5rem;">Use the refresh button if channels fail to load</li></ul>
+<h2 style="color:#e0e7ff;font-size:1.4rem;margin:2rem 0 1rem;">Supported Devices</h2>
+<p style="margin-bottom:1.5rem;">funtv.in works on any device with a modern web browser: iPhone, Android phones, iPads, Android tablets, Windows/Mac laptops, and desktop computers. No app download needed.</p>
+</div>
+<a href="/" style="display:inline-block;margin-top:2rem;padding:0.75rem 2rem;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">← Start Watching Now</a>
+</div></body></html>`);
 });
 
 // Catch-all: any non-API route returns index.html (important for Vercel + SPA)
