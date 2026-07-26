@@ -83,10 +83,10 @@ function CategoryCard({ item, icon, color }) {
   return (
     <Link
       to={`/wiki/${item.id}`}
-      className={`group relative p-5 rounded-2xl bg-gradient-to-br ${color} border hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/5`}
+      className={`group relative p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${color} border hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/5`}
     >
       <div className="flex items-start justify-between mb-3">
-        <span className="text-2xl">{icon}</span>
+        <span className="text-xl sm:text-2xl">{icon}</span>
         <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-brand-400 group-hover:translate-x-1 transition-all" />
       </div>
       <h3 className="font-bold text-gray-100 group-hover:text-white transition-colors text-sm">
@@ -135,16 +135,16 @@ export default function Home() {
     : []
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen px-3 sm:px-6 lg:px-8">
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-brand-500/5 via-transparent to-transparent" />
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-sm mb-6">
+        <div className="relative max-w-4xl mx-auto pt-10 sm:pt-16 pb-8 sm:pb-12 text-center">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs sm:text-sm mb-5 sm:mb-6">
             <Zap className="w-4 h-4" />
             Free resources — no signups required
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
             <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
               The Internet's Best
             </span>
@@ -153,20 +153,20 @@ export default function Home() {
               Free Resources
             </span>
           </h1>
-          <p className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-4 sm:mt-5 text-base sm:text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
             Curated links to the best free streaming, software, books, games, AI tools and more.
             No signups, no BS — just click and go.
           </p>
 
           {/* Search */}
-          <div className="mt-8 max-w-xl mx-auto relative">
+          <div className="mt-6 sm:mt-8 max-w-xl mx-auto relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
             <input
               type="text"
               placeholder="Search all resources..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-gray-900/50 border border-gray-800/50 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/30 text-base"
+              className="w-full pl-12 pr-4 py-3 sm:py-3.5 rounded-2xl bg-gray-900/50 border border-gray-800/50 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/30 text-base"
             />
           </div>
 
@@ -206,17 +206,17 @@ export default function Home() {
             </div>
           )}
 
-          <div className="mt-8 flex items-center justify-center gap-4">
+          <div className="mt-6 sm:mt-8 flex items-center justify-center gap-3 sm:gap-4">
             <Link
               to="/wiki/streaming"
-              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium transition-colors flex items-center gap-2"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium transition-colors flex items-center gap-2 text-sm sm:text-base"
             >
               Start Exploring
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href="#categories"
-              className="px-6 py-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 text-gray-300 font-medium transition-colors border border-gray-700/50"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gray-800/50 hover:bg-gray-800 text-gray-300 font-medium transition-colors border border-gray-700/50 text-sm sm:text-base"
             >
               Browse All
             </a>
@@ -225,7 +225,7 @@ export default function Home() {
           {/* Scroll down arrow */}
           <a
             href="#categories"
-            className="mt-10 inline-flex flex-col items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors group animate-pulse"
+            className="mt-8 sm:mt-10 inline-flex flex-col items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors group animate-pulse"
           >
             <span className="text-xs font-semibold tracking-widest uppercase">Explore</span>
             <svg
@@ -241,43 +241,43 @@ export default function Home() {
       </section>
 
       {/* Stats */}
-      <section className="border-y border-gray-800/50 bg-gray-900/30">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+      <section className="border-y border-gray-800/50 bg-gray-900/30 -mx-3 sm:-mx-6 lg:-mx-8">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-white">{allPages.length}+</div>
-              <div className="text-sm text-gray-500">Categories</div>
+              <div className="text-xl sm:text-2xl font-bold text-white">{allPages.length}+</div>
+              <div className="text-xs sm:text-sm text-gray-500">Categories</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">{totalItems}+</div>
-              <div className="text-sm text-gray-500">Curated Links</div>
+              <div className="text-xl sm:text-2xl font-bold text-white">{totalItems}+</div>
+              <div className="text-xs sm:text-sm text-gray-500">Curated Links</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">100%</div>
-              <div className="text-sm text-gray-500">Free to Use</div>
+              <div className="text-xl sm:text-2xl font-bold text-white">100%</div>
+              <div className="text-xs sm:text-sm text-gray-500">Free to Use</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">0</div>
-              <div className="text-sm text-gray-500">Signups Required</div>
+              <div className="text-xl sm:text-2xl font-bold text-white">0</div>
+              <div className="text-xs sm:text-sm text-gray-500">Signups Required</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Ad — 728x90 desktop / responsive */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Ad — top banner */}
+      <div className="max-w-4xl mx-auto py-5 sm:py-6">
         <AdBanner size="banner-728x90" className="py-4" />
       </div>
 
       {/* Wiki Categories */}
-      <section id="categories" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="text-2xl">📚</span> Wiki
+      <section id="categories" className="max-w-4xl mx-auto pb-6 sm:pb-8">
+        <div className="mb-5 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <span className="text-xl sm:text-2xl">📚</span> Wiki
           </h2>
-          <p className="text-sm text-gray-500 mt-1">Streaming, privacy, gaming, books, and more</p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">Streaming, privacy, gaming, books, and more</p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
           {sidebarSections.wiki.map((item) => (
             <CategoryCard
               key={item.id}
@@ -289,15 +289,20 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Ad — between sections */}
+      <div className="max-w-4xl mx-auto pb-6 sm:pb-8">
+        <AdBanner size="banner-300x250" className="py-4" />
+      </div>
+
       {/* Tools Categories */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="text-2xl">🔧</span> Tools
+      <section className="max-w-4xl mx-auto pb-6 sm:pb-8">
+        <div className="mb-5 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <span className="text-xl sm:text-2xl">🔧</span> Tools
           </h2>
-          <p className="text-sm text-gray-500 mt-1">System, file, internet, image, video, and developer tools</p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">System, file, internet, image, video, and developer tools</p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
           {sidebarSections.tools.map((item) => (
             <CategoryCard
               key={item.id}
@@ -309,15 +314,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Ad — 300x250 inline */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <AdBanner size="banner-300x250" className="py-4" />
+      {/* Ad — after tools */}
+      <div className="max-w-4xl mx-auto pb-6 sm:pb-8">
+        <AdBanner size="banner-728x90" className="py-4" />
       </div>
 
       {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-gray-800/50">
-        <h2 className="text-xl font-bold text-white text-center mb-8">Frequently Asked Questions</h2>
-        <div className="space-y-4">
+      <section className="max-w-3xl mx-auto py-10 sm:py-12 border-t border-gray-800/50">
+        <h2 className="text-lg sm:text-xl font-bold text-white text-center mb-6 sm:mb-8">Frequently Asked Questions</h2>
+        <div className="space-y-3 sm:space-y-4">
           {[
             { q: 'Is funtv.in free to use?', a: 'Yes. All resources are completely free. We never charge anything.' },
             { q: 'Do I need to create an account?', a: 'No. Browse, click a link, and go. No signups needed.' },
@@ -325,13 +330,18 @@ export default function Home() {
             { q: 'Can I suggest a resource?', a: 'Yes! Reach out via our Contact page.' },
             { q: 'Do you host any content?', a: 'No. funtv.in is a curated directory of links. We do not host, store, or distribute any content.' },
           ].map((faq, i) => (
-            <div key={i} className="p-4 rounded-xl bg-gray-900/30 border border-gray-800/50">
+            <div key={i} className="p-3 sm:p-4 rounded-xl bg-gray-900/30 border border-gray-800/50">
               <h3 className="font-semibold text-gray-200 text-sm">{faq.q}</h3>
               <p className="text-sm text-gray-500 mt-1">{faq.a}</p>
             </div>
           ))}
         </div>
       </section>
+
+      {/* Ad — bottom of page */}
+      <div className="max-w-4xl mx-auto pb-8">
+        <AdBanner size="banner-300x250" className="py-4" />
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronRight, Menu, X, Zap, BookOpen, Wrench } from 'lucide-react'
 import { sidebarSections } from '../data/wiki'
 
@@ -36,10 +36,16 @@ function SidebarGroup({ title, icon: Icon, items, isOpen, onToggle }) {
   )
 }
 
-export default function SidebarNav() {
+// Accept external mobileOpen/setMobileOpen from Navbar
+export default function SidebarNav({ mobileOpen, setMobileOpen }) {
   const [wikiOpen, setWikiOpen] = useState(true)
   const [toolsOpen, setToolsOpen] = useState(true)
-  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Close on route change
+  const location = useLocation()
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
 
   const sidebarContent = (
     <>
@@ -59,22 +65,14 @@ export default function SidebarNav() {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
-      >
-        {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-      </button>
-
       {/* Mobile overlay */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-gray-950/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Mobile sidebar */}
-      <div className={`lg:hidden fixed top-0 left-0 z-40 w-72 h-full bg-gray-950 border-r border-gray-800 overflow-y-auto transition-transform duration-200 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-4 pt-16">{sidebarContent}</div>
+      {/* Mobile sidebar - slides from left */}
+      <div className={`lg:hidden fixed top-0 left-0 z-40 w-72 h-full bg-gray-950 border-r border-gray-800 overflow-y-auto transition-transform duration-300 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-4 pt-4">{sidebarContent}</div>
       </div>
 
       {/* Desktop sidebar */}

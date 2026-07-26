@@ -106,7 +106,7 @@ function SubSection({ sub }) {
         </a>
       </button>
       {open && (
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 ml-6">
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 ml-4 sm:ml-6">
           {sub.items.map((item) => (
             <ResourceItem key={item.name} item={item} />
           ))}
@@ -122,7 +122,7 @@ export default function WikiPage() {
 
   if (!page) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 py-20 text-center">
         <h1 className="text-3xl font-bold text-white mb-4">Page Not Found</h1>
         <p className="text-gray-500 mb-6">This page doesn't exist yet.</p>
         <Link to="/" className="text-brand-400 hover:text-brand-300">← Back to Home</Link>
@@ -144,24 +144,24 @@ export default function WikiPage() {
   }, 0)
 
   return (
-    <div className="flex gap-8">
+    <div className="flex gap-6 xl:gap-8 px-3 sm:px-6 lg:px-8">
       <article className="flex-1 min-w-0 max-w-4xl">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-400 transition-colors mb-6">
+        <Link to="/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-400 transition-colors mb-5 sm:mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to Home
         </Link>
 
         {/* Top ad — 728x90 */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <AdBanner size="banner-728x90" className="py-2" />
         </div>
 
         {/* Page Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-white">{page.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">{page.title}</h1>
           </div>
-          <p className="text-gray-500">{page.description}</p>
+          <p className="text-gray-500 text-sm sm:text-base">{page.description}</p>
           <div className="flex items-center gap-4 mt-3 text-xs text-gray-600">
             <span className="flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-brand-400" />
@@ -171,61 +171,75 @@ export default function WikiPage() {
           </div>
         </div>
 
-        {/* Sections as visual cards */}
-        {page.sections.map((section) => {
+        {/* Sections with ads between every 3rd section */}
+        {page.sections.map((section, sectionIndex) => {
           const sectionId = section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
           const sectionItemCount = (section.items || []).length + (section.subsections || []).reduce((s, sub) => s + sub.items.length, 0)
 
           return (
-            <section key={sectionId} id={sectionId} className="mb-8 scroll-mt-20">
-              {/* Section Header Card */}
-              <div className="flex items-center justify-between p-4 rounded-xl bg-gray-900/50 border border-gray-800/50 mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/20 border border-brand-500/20 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-brand-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                      {section.title}
-                      <a href={`#${sectionId}`} className="text-gray-700 hover:text-brand-400 text-sm">#</a>
-                    </h2>
-                    <p className="text-xs text-gray-600">{sectionItemCount} resources</p>
+            <div key={sectionId}>
+              <section id={sectionId} className="mb-8 scroll-mt-20">
+                {/* Section Header Card */}
+                <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-gray-900/50 border border-gray-800/50 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/20 border border-brand-500/20 flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-brand-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                        {section.title}
+                        <a href={`#${sectionId}`} className="text-gray-700 hover:text-brand-400 text-sm">#</a>
+                      </h2>
+                      <p className="text-xs text-gray-600">{sectionItemCount} resources</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {section.tip && <TipBox tip={section.tip} />}
+                {section.tip && <TipBox tip={section.tip} />}
 
-              {/* Main items as grid */}
-              {section.items && section.items.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-                  {section.items.map((item) => (
-                    <ResourceItem key={item.name} item={item} />
-                  ))}
+                {/* Main items as grid */}
+                {section.items && section.items.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                    {section.items.map((item) => (
+                      <ResourceItem key={item.name} item={item} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Subsections */}
+                {section.subsections && section.subsections.map((sub) => (
+                  <SubSection key={sub.title} sub={sub} />
+                ))}
+              </section>
+
+              {/* In-content ad after every 3rd section */}
+              {(sectionIndex + 1) % 3 === 0 && sectionIndex < page.sections.length - 1 && (
+                <div className="my-6 sm:my-8">
+                  <AdBanner size="banner-300x250" className="py-2" />
                 </div>
               )}
-
-              {/* Subsections */}
-              {section.subsections && section.subsections.map((sub) => (
-                <SubSection key={sub.title} sub={sub} />
-              ))}
-            </section>
+            </div>
           )
         })}
 
         {/* Mid-page ad — 300x250 */}
-        <div className="my-8">
+        <div className="my-6 sm:my-8">
           <AdBanner size="banner-300x250" className="py-2" />
         </div>
 
         {/* SEO footer */}
-        <div className="p-6 rounded-xl bg-gray-900/30 border border-gray-800/50">
-          <h2 className="text-lg font-bold text-white mb-3">About this page</h2>
+        <div className="p-4 sm:p-6 rounded-xl bg-gray-900/30 border border-gray-800/50">
+          <h2 className="text-base sm:text-lg font-bold text-white mb-3">About this page</h2>
           <p className="text-sm text-gray-500 leading-relaxed">
             funtv.in curates the best free {page.title.toLowerCase()} resources on the internet.
             All links are hand-picked for quality and safety. Starred items are our top recommendations.
             This page is regularly updated with new resources.
           </p>
+        </div>
+
+        {/* Bottom ad */}
+        <div className="mt-6 sm:mt-8">
+          <AdBanner size="banner-728x90" className="py-2" />
         </div>
       </article>
 
