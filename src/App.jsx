@@ -8,6 +8,7 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import Footer from './components/Footer'
 import MobileStickyAd from './components/MobileStickyAd'
+import InterstitialAd from './components/InterstitialAd'
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -28,6 +29,7 @@ export default function App() {
         <Footer />
       </div>
       <MobileStickyAd />
+      <InterstitialAd interval={3} />
     </div>
   )
 }

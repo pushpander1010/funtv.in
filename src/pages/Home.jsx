@@ -3,6 +3,7 @@ import { ArrowRight, Zap, Search, Star, ExternalLink, Sparkles } from 'lucide-re
 import { useState } from 'react'
 import { sidebarSections, wikiPages } from '../data/wiki'
 import AdBanner from '../components/AdBanner'
+import NativeInFeedAd from '../components/NativeInFeedAd'
 
 const wikiIcons = {
   'adblocking-privacy': '🛡️',
@@ -83,23 +84,25 @@ function CategoryCard({ item, icon, color }) {
   return (
     <Link
       to={`/wiki/${item.id}`}
-      className={`group relative p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${color} border hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/5`}
+      className={`group relative p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br ${color} border hover:scale-[1.02] transition-all duration-200 hover:shadow-lg hover:shadow-brand-500/5 min-h-[100px] sm:min-h-[110px] flex flex-col justify-between`}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2 sm:mb-3">
         <span className="text-xl sm:text-2xl">{icon}</span>
         <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-brand-400 group-hover:translate-x-1 transition-all" />
       </div>
-      <h3 className="font-bold text-gray-100 group-hover:text-white transition-colors text-sm">
-        {item.title}
-      </h3>
-      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-        <span>{count} links</span>
-        {starred > 0 && (
-          <span className="flex items-center gap-0.5 text-amber-400/70">
-            <Star className="w-3 h-3 fill-amber-400/70" />
-            {starred}
-          </span>
-        )}
+      <div>
+        <h3 className="font-bold text-gray-100 group-hover:text-white transition-colors text-sm leading-tight">
+          {item.title}
+        </h3>
+        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+          <span>{count} links</span>
+          {starred > 0 && (
+            <span className="flex items-center gap-0.5 text-amber-400/70">
+              <Star className="w-3 h-3 fill-amber-400/70" />
+              {starred}
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   )
@@ -135,16 +138,16 @@ export default function Home() {
     : []
 
   return (
-    <div className="min-h-screen px-3 sm:px-6 lg:px-8">
+    <div className="min-h-screen px-4 sm:px-6 lg:px-8">
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-brand-500/5 via-transparent to-transparent" />
-        <div className="relative max-w-4xl mx-auto pt-10 sm:pt-16 pb-8 sm:pb-12 text-center">
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs sm:text-sm mb-5 sm:mb-6">
+        <div className="relative max-w-4xl mx-auto pt-8 sm:pt-16 pb-6 sm:pb-12 text-center">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs sm:text-sm mb-4 sm:mb-6">
             <Zap className="w-4 h-4" />
             Free resources — no signups required
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
             <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
               The Internet's Best
             </span>
@@ -153,13 +156,13 @@ export default function Home() {
               Free Resources
             </span>
           </h1>
-          <p className="mt-4 sm:mt-5 text-base sm:text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-3 sm:mt-5 text-sm sm:text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
             Curated links to the best free streaming, software, books, games, AI tools and more.
             No signups, no BS — just click and go.
           </p>
 
           {/* Search */}
-          <div className="mt-6 sm:mt-8 max-w-xl mx-auto relative">
+          <div className="mt-5 sm:mt-8 max-w-xl mx-auto relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
             <input
               type="text"
@@ -182,17 +185,17 @@ export default function Home() {
                     rel="noopener noreferrer"
                     className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 border-b border-gray-800/50 last:border-0"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       {r.starred && <Star className="w-3 h-3 text-amber-400 fill-amber-400 flex-shrink-0" />}
-                      <div>
-                        <div className="text-sm font-medium text-gray-200">{r.name}</div>
-                        <div className="text-xs text-gray-500 truncate max-w-md">{r.desc}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-200 truncate">{r.name}</div>
+                        <div className="text-xs text-gray-500 truncate">{r.desc}</div>
                       </div>
                     </div>
                     <Link
                       to={`/wiki/${r.pageId}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-xs text-brand-400 whitespace-nowrap ml-4 hover:underline"
+                      className="text-xs text-brand-400 whitespace-nowrap ml-4 hover:underline flex-shrink-0"
                     >
                       {r.pageTitle}
                     </Link>
@@ -206,7 +209,7 @@ export default function Home() {
             </div>
           )}
 
-          <div className="mt-6 sm:mt-8 flex items-center justify-center gap-3 sm:gap-4">
+          <div className="mt-5 sm:mt-8 flex items-center justify-center gap-3 sm:gap-4">
             <Link
               to="/wiki/streaming"
               className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium transition-colors flex items-center gap-2 text-sm sm:text-base"
@@ -225,11 +228,11 @@ export default function Home() {
           {/* Scroll down arrow */}
           <a
             href="#categories"
-            className="mt-8 sm:mt-10 inline-flex flex-col items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors group animate-pulse"
+            className="mt-6 sm:mt-10 inline-flex flex-col items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors group animate-pulse"
           >
             <span className="text-xs font-semibold tracking-widest uppercase">Explore</span>
             <svg
-              className="w-7 h-7 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]"
+              className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -241,8 +244,8 @@ export default function Home() {
       </section>
 
       {/* Stats */}
-      <section className="border-y border-gray-800/50 bg-gray-900/30 -mx-3 sm:-mx-6 lg:-mx-8">
-        <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-6">
+      <section className="border-y border-gray-800/50 bg-gray-900/30 -mx-4 sm:-mx-6 lg:-mx-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-center">
             <div>
               <div className="text-xl sm:text-2xl font-bold text-white">{allPages.length}+</div>
@@ -264,20 +267,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Ad — top banner */}
+      {/* Ad — after hero/stats */}
       <div className="max-w-4xl mx-auto py-5 sm:py-6">
         <AdBanner size="banner-728x90" className="py-4" />
       </div>
 
       {/* Wiki Categories */}
-      <section id="categories" className="max-w-4xl mx-auto pb-6 sm:pb-8">
-        <div className="mb-5 sm:mb-6">
+      <section id="categories" className="max-w-4xl mx-auto pb-4 sm:pb-8">
+        <div className="mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
             <span className="text-xl sm:text-2xl">📚</span> Wiki
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">Streaming, privacy, gaming, books, and more</p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
           {sidebarSections.wiki.map((item) => (
             <CategoryCard
               key={item.id}
@@ -289,20 +292,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Ad — between sections */}
-      <div className="max-w-4xl mx-auto pb-6 sm:pb-8">
-        <AdBanner size="banner-300x250" className="py-4" />
+      {/* Ad — between wiki and tools (300x250 native on mobile) */}
+      <div className="max-w-4xl mx-auto pb-4 sm:pb-8">
+        <div className="flex justify-center">
+          <NativeInFeedAd className="py-4" />
+        </div>
       </div>
 
       {/* Tools Categories */}
-      <section className="max-w-4xl mx-auto pb-6 sm:pb-8">
-        <div className="mb-5 sm:mb-6">
+      <section className="max-w-4xl mx-auto pb-4 sm:pb-8">
+        <div className="mb-4 sm:mb-6">
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
             <span className="text-xl sm:text-2xl">🔧</span> Tools
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">System, file, internet, image, video, and developer tools</p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
           {sidebarSections.tools.map((item) => (
             <CategoryCard
               key={item.id}
@@ -315,13 +320,60 @@ export default function Home() {
       </section>
 
       {/* Ad — after tools */}
-      <div className="max-w-4xl mx-auto pb-6 sm:pb-8">
+      <div className="max-w-4xl mx-auto pb-4 sm:pb-8">
         <AdBanner size="banner-728x90" className="py-4" />
       </div>
 
+      {/* Popular Resources (new section for more ad surface) */}
+      <section className="max-w-4xl mx-auto pb-4 sm:pb-8">
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <span className="text-xl sm:text-2xl">⭐</span> Top Picks
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">Handpicked favorites across all categories</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+          {wikiPages.flatMap(page =>
+            page.sections.flatMap(sec => {
+              const items = (sec.items || []).filter(i => i.starred)
+              const subItems = (sec.subsections || []).flatMap(sub => sub.items.filter(i => i.starred))
+              return [...items, ...subItems].slice(0, 2).map(item => ({
+                ...item,
+                pageTitle: page.title,
+                pageId: page.id,
+              }))
+            })
+          ).slice(0, 6).map((item, i) => (
+            <a
+              key={i}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10 transition-all duration-200"
+            >
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-gray-200 group-hover:text-amber-400 transition-colors text-sm truncate">
+                  {item.name}
+                </div>
+                <p className="text-xs text-gray-500 truncate">{item.desc}</p>
+                <span className="text-[10px] text-gray-600 mt-0.5 block">{item.pageTitle}</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Ad — after top picks */}
+      <div className="max-w-4xl mx-auto pb-4 sm:pb-8">
+        <AdBanner size="banner-300x250" className="py-4" />
+      </div>
+
       {/* FAQ */}
-      <section className="max-w-3xl mx-auto py-10 sm:py-12 border-t border-gray-800/50">
-        <h2 className="text-lg sm:text-xl font-bold text-white text-center mb-6 sm:mb-8">Frequently Asked Questions</h2>
+      <section className="max-w-3xl mx-auto py-8 sm:py-12 border-t border-gray-800/50">
+        <h2 className="text-lg sm:text-xl font-bold text-white text-center mb-5 sm:mb-8">Frequently Asked Questions</h2>
         <div className="space-y-3 sm:space-y-4">
           {[
             { q: 'Is funtv.in free to use?', a: 'Yes. All resources are completely free. We never charge anything.' },
@@ -330,16 +382,24 @@ export default function Home() {
             { q: 'Can I suggest a resource?', a: 'Yes! Reach out via our Contact page.' },
             { q: 'Do you host any content?', a: 'No. funtv.in is a curated directory of links. We do not host, store, or distribute any content.' },
           ].map((faq, i) => (
-            <div key={i} className="p-3 sm:p-4 rounded-xl bg-gray-900/30 border border-gray-800/50">
-              <h3 className="font-semibold text-gray-200 text-sm">{faq.q}</h3>
-              <p className="text-sm text-gray-500 mt-1">{faq.a}</p>
+            <div key={i}>
+              <div className="p-3 sm:p-4 rounded-xl bg-gray-900/30 border border-gray-800/50">
+                <h3 className="font-semibold text-gray-200 text-sm">{faq.q}</h3>
+                <p className="text-sm text-gray-500 mt-1">{faq.a}</p>
+              </div>
+              {/* Ad after FAQ item 2 (mid-page) */}
+              {i === 2 && (
+                <div className="my-4 flex justify-center">
+                  <NativeInFeedAd />
+                </div>
+              )}
             </div>
           ))}
         </div>
       </section>
 
       {/* Ad — bottom of page */}
-      <div className="max-w-4xl mx-auto pb-8">
+      <div className="max-w-4xl mx-auto pb-6 sm:pb-8">
         <AdBanner size="banner-300x250" className="py-4" />
       </div>
     </div>

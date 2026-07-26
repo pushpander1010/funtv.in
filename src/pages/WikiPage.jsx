@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { wikiPages } from '../data/wiki'
 import TOC from '../components/TOC'
 import AdBanner from '../components/AdBanner'
+import NativeInFeedAd from '../components/NativeInFeedAd'
 
 function ResourceItem({ item }) {
   return (
@@ -11,7 +12,7 @@ function ResourceItem({ item }) {
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group flex items-start gap-3 p-3 rounded-xl border transition-all duration-200 ${
+      className={`group flex items-start gap-3 p-3 sm:p-3.5 rounded-xl border transition-all duration-200 ${
         item.starred
           ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10'
           : 'bg-gray-900/30 border-gray-800/50 hover:border-gray-700/80 hover:bg-gray-900/60'
@@ -25,7 +26,7 @@ function ResourceItem({ item }) {
         {item.starred ? <Star className="w-4 h-4 fill-amber-400" /> : <ExternalLink className="w-3.5 h-3.5" />}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-gray-200 group-hover:text-brand-400 transition-colors text-sm">
             {item.name}
           </span>
@@ -122,7 +123,7 @@ export default function WikiPage() {
 
   if (!page) {
     return (
-      <div className="max-w-4xl mx-auto px-3 sm:px-6 py-20 text-center">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center">
         <h1 className="text-3xl font-bold text-white mb-4">Page Not Found</h1>
         <p className="text-gray-500 mb-6">This page doesn't exist yet.</p>
         <Link to="/" className="text-brand-400 hover:text-brand-300">← Back to Home</Link>
@@ -144,7 +145,7 @@ export default function WikiPage() {
   }, 0)
 
   return (
-    <div className="flex gap-6 xl:gap-8 px-3 sm:px-6 lg:px-8">
+    <div className="flex gap-6 xl:gap-8 px-4 sm:px-6 lg:px-8">
       <article className="flex-1 min-w-0 max-w-4xl">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-400 transition-colors mb-5 sm:mb-6">
           <ArrowLeft className="w-4 h-4" />
@@ -171,7 +172,7 @@ export default function WikiPage() {
           </div>
         </div>
 
-        {/* Sections with ads between every 3rd section */}
+        {/* Sections with ads between every 2nd section + native in-feed */}
         {page.sections.map((section, sectionIndex) => {
           const sectionId = section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
           const sectionItemCount = (section.items || []).length + (section.subsections || []).reduce((s, sub) => s + sub.items.length, 0)
@@ -212,19 +213,26 @@ export default function WikiPage() {
                 ))}
               </section>
 
-              {/* In-content ad after every 3rd section */}
-              {(sectionIndex + 1) % 3 === 0 && sectionIndex < page.sections.length - 1 && (
-                <div className="my-6 sm:my-8">
+              {/* Banner ad after every 2nd section */}
+              {(sectionIndex + 1) % 2 === 0 && sectionIndex < page.sections.length - 1 && (
+                <div className="my-5 sm:my-6">
                   <AdBanner size="banner-300x250" className="py-2" />
+                </div>
+              )}
+
+              {/* Native in-feed ad after every 4th section */}
+              {(sectionIndex + 1) % 4 === 0 && sectionIndex < page.sections.length - 1 && (
+                <div className="my-4 flex justify-center">
+                  <NativeInFeedAd />
                 </div>
               )}
             </div>
           )
         })}
 
-        {/* Mid-page ad — 300x250 */}
+        {/* Mid-page ad — 728x90 */}
         <div className="my-6 sm:my-8">
-          <AdBanner size="banner-300x250" className="py-2" />
+          <AdBanner size="banner-728x90" className="py-2" />
         </div>
 
         {/* SEO footer */}

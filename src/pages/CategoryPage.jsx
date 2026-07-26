@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { categories } from '../data/categories'
 import ResourceCard from '../components/ResourceCard'
 import AdBanner from '../components/AdBanner'
+import NativeInFeedAd from '../components/NativeInFeedAd'
 
 export default function CategoryPage() {
   const { categoryId } = useParams()
@@ -14,7 +15,7 @@ export default function CategoryPage() {
 
   if (!category) {
     return (
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-20 text-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 text-center">
         <h1 className="text-3xl font-bold text-white mb-4">Category Not Found</h1>
         <p className="text-gray-500 mb-6">This category doesn't exist yet.</p>
         <Link to="/" className="text-brand-400 hover:text-brand-300">← Back to Home</Link>
@@ -41,25 +42,25 @@ export default function CategoryPage() {
   }, [category, search, selectedTag])
 
   // Split resources into chunks for ad injection
-  const AD_EVERY = 6
+  const AD_EVERY = 4
 
   return (
-    <div className="min-h-screen px-3 sm:px-6 lg:px-8">
+    <div className="min-h-screen px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-brand-500/5 via-transparent to-transparent" />
-        <div className="relative max-w-7xl mx-auto pt-8 sm:pt-10 pb-6 sm:pb-8">
-          <Link to="/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-400 transition-colors mb-5 sm:mb-6">
+        <div className="relative max-w-7xl mx-auto pt-6 sm:pt-10 pb-4 sm:pb-8">
+          <Link to="/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-brand-400 transition-colors mb-4 sm:mb-6">
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${category.color} flex items-center justify-center flex-shrink-0`}>
               <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
             <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">{category.title}</h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-3xl font-bold text-white">{category.title}</h1>
                 {category.badge && (
                   <span className={category.badgeColor || 'badge-blue'}>
                     {category.badge}
@@ -123,11 +124,11 @@ export default function CategoryPage() {
       <div className="max-w-7xl mx-auto pb-12 sm:pb-16">
         {filtered.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
               {filtered.map((resource, idx) => (
                 <div key={resource.name}>
                   <ResourceCard resource={resource} />
-                  {/* In-content ad every AD_EVERY cards */}
+                  {/* Banner ad every AD_EVERY cards */}
                   {(idx + 1) % AD_EVERY === 0 && idx < filtered.length - 1 && (
                     <div className="mt-3 col-span-full">
                       <AdBanner size="banner-300x250" className="py-2" />
@@ -135,6 +136,11 @@ export default function CategoryPage() {
                   )}
                 </div>
               ))}
+            </div>
+
+            {/* Native in-feed ad after the grid */}
+            <div className="mt-6 flex justify-center">
+              <NativeInFeedAd />
             </div>
           </>
         ) : (
@@ -154,7 +160,7 @@ export default function CategoryPage() {
         )}
 
         {/* SEO content */}
-        <div className="mt-12 sm:mt-16 p-5 sm:p-8 rounded-2xl bg-gray-900/30 border border-gray-800/50">
+        <div className="mt-10 sm:mt-16 p-4 sm:p-8 rounded-2xl bg-gray-900/30 border border-gray-800/50">
           <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">
             Free {category.title} Resources — Complete Guide
           </h2>
@@ -170,6 +176,11 @@ export default function CategoryPage() {
               you'll find something useful in this collection.
             </p>
           </div>
+        </div>
+
+        {/* Final bottom ad */}
+        <div className="mt-8">
+          <AdBanner size="banner-300x250" className="py-2" />
         </div>
       </div>
     </div>
