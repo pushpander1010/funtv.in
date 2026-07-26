@@ -225,16 +225,16 @@ export default function Home() {
           {/* Scroll down arrow */}
           <a
             href="#categories"
-            className="mt-10 inline-flex flex-col items-center gap-1 text-gray-600 hover:text-brand-400 transition-colors group"
+            className="mt-10 inline-flex flex-col items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors group animate-pulse"
           >
-            <span className="text-xs tracking-widest uppercase">Explore</span>
+            <span className="text-xs font-semibold tracking-widest uppercase">Explore</span>
             <svg
-              className="w-5 h-5 animate-bounce"
+              className="w-7 h-7 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
             </svg>
           </a>
         </div>
