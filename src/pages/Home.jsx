@@ -264,9 +264,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Ad */}
+      {/* Ad — 728x90 desktop / responsive */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <AdBanner className="h-24" />
+        <AdBanner size="banner-728x90" className="py-4" />
       </div>
 
       {/* Wiki Categories */}
@@ -309,9 +309,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Ad */}
+      {/* Ad — 300x250 inline */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <AdBanner className="h-20" />
+        <AdBanner size="banner-300x250" className="py-4" />
       </div>
 
       {/* FAQ */}

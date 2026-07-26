@@ -5,6 +5,7 @@ import WikiPage from './pages/WikiPage'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import Footer from './components/Footer'
+import MobileStickyAd from './components/MobileStickyAd'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         </main>
         <Footer />
       </div>
+      <MobileStickyAd />
     </div>
   )
 }

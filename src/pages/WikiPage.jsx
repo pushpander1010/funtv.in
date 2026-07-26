@@ -151,6 +151,11 @@ export default function WikiPage() {
           Back to Home
         </Link>
 
+        {/* Top ad — 728x90 */}
+        <div className="mb-8">
+          <AdBanner size="banner-728x90" className="py-2" />
+        </div>
+
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -208,9 +213,9 @@ export default function WikiPage() {
           )
         })}
 
-        {/* Mid-page ad */}
+        {/* Mid-page ad — 300x250 */}
         <div className="my-8">
-          <AdBanner className="h-24" />
+          <AdBanner size="banner-300x250" className="py-2" />
         </div>
 
         {/* SEO footer */}
@@ -224,9 +229,10 @@ export default function WikiPage() {
         </div>
       </article>
 
-      {/* TOC - desktop only */}
-      <aside className="hidden xl:block w-56 flex-shrink-0">
+      {/* TOC + Sidebar Ad - desktop only */}
+      <aside className="hidden xl:block w-56 flex-shrink-0 space-y-6">
         <TOC sections={tocSections} />
+        <AdBanner size="banner-160x600" className="sticky top-24" />
       </aside>
     </div>
   )
