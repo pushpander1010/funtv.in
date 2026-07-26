@@ -1,4 +1,20 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://funtv.in/sitemap.xml
+{
+  "name": "funtv.in",
+  "url": "https://funtv.in",
+  "description": "Free streaming, apps, books, games, AI tools and more — curated links to the internet's best free resources.",
+  "language": "en",
+  "categories": [
+    "Streaming",
+    "Software",
+    "Android/iOS",
+    "Reading",
+    "Gaming",
+    "AI Tools",
+    "Music & Audio",
+    "Privacy & Security",
+    "Downloading",
+    "Education",
+    "Torrenting",
+    "Miscellaneous"
+  ]
+}
