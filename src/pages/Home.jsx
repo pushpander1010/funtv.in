@@ -221,6 +221,22 @@ export default function Home() {
               Browse All
             </a>
           </div>
+
+          {/* Scroll down arrow */}
+          <a
+            href="#categories"
+            className="mt-10 inline-flex flex-col items-center gap-1 text-gray-600 hover:text-brand-400 transition-colors group"
+          >
+            <span className="text-xs tracking-widest uppercase">Explore</span>
+            <svg
+              className="w-5 h-5 animate-bounce"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </a>
         </div>
       </section>
 
