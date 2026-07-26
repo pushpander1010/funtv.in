@@ -5,14 +5,6 @@ export default function AdBanner({ className = '', label = 'Advertisement' }) {
         REPLACE THIS DIV WITH YOUR AD NETWORK CODE
         Example for PropellerAds:
         <script type="text/javascript" src="//pl1234567890.com/..."></script>
-        
-        Example for Adsterra:
-        <div id="adsterra-banner"></div>
-        <script>...Adsterra code...</script>
-        
-        Example for Media.net:
-        <div id="medianet-ad"></div>
-        <script>window._mdn = window._mdn || []; ...</script>
       */}
       <div className="text-center py-4">
         <p className="text-xs text-gray-600 uppercase tracking-wider">{label}</p>
