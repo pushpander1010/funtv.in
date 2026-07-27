@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import WikiPage from './pages/WikiPage'
 import About from './pages/About'
 import Contact from './pages/Contact'
+import CategoryPage from './pages/CategoryPage'
 import Footer from './components/Footer'
 import MobileStickyAd from './components/MobileStickyAd'
 import InterstitialAd from './components/InterstitialAd'
@@ -22,6 +23,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/wiki/:pageId" element={<WikiPage />} />
+            <Route path="/:categoryId" element={<CategoryPage />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
           </Routes>
